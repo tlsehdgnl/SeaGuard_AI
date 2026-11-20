@@ -1,6 +1,7 @@
 import React, {createContext,useContext,useEffect,useRef,useState,useCallback} from 'react';
 import {useLanguage,LanguageSwitch} from './i18n.js';
 import './account.css';
+import {KakaoLoginButton} from './KakaoButtons.jsx';
 const Context=createContext(null);
 const base=(import.meta.env.VITE_API_BASE_URL||'').replace(/\/$/,'');
 export async function accountRequest(path,body,method) {
@@ -42,6 +43,7 @@ export function AccountPage(){
     <section className="account-card"><p className="account-eyebrow">YOUR DONGHAE COMPANION</p><h1>{signup?(en?'Join DePartner':'여행 기록을 함께 모아요'):(en?'Welcome back':'다시 만나 반가워요')}</h1>
       <p>{en?'Use every travel feature without an account. Sign in to access saved plans on your other devices.':'로그인 없이도 여행 기능을 이용할 수 있어요. 로그인하면 여러 기기에서 저장한 계획을 모아 볼 수 있어요.'}</p>
       {account.user ? <><p>{account.user.nickname}{en?', you are signed in.':'님, 로그인되어 있어요.'}</p><a className="account-primary" href="/?mypage=1">{en?'Open my plans':'마이페이지 열기'}</a></> : <>
+      <div className="account-kakao"><KakaoLoginButton label={en?'Continue with Kakao':'카카오로 3초 만에 시작하기'}/><p className="account-divider"><span>{en?'or use an ID':'또는 아이디로'}</span></p></div>
       <div className="account-tabs"><button type="button" aria-pressed={!signup} onClick={()=>{setSignup(false);setError('');}}>{en?'Sign in':'로그인'}</button><button type="button" aria-pressed={signup} onClick={()=>{setSignup(true);setError('');}}>{en?'Create account':'회원가입'}</button></div>
       <form onSubmit={submit}><fieldset disabled={busy}>
         <label>{en?'Username':'아이디'}<input required autoComplete="username" pattern="[A-Za-z0-9_]{4,24}" minLength={4} maxLength={24} {...field('username')}/><small>{en?'4–24 letters, numbers or underscores; case-insensitive.':'영문·숫자·밑줄 4~24자, 대소문자는 구분하지 않아요.'}</small></label>

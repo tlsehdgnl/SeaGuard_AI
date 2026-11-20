@@ -3,6 +3,7 @@ import { StopSafety } from "./StopSafety.jsx";
 import { CourseMap } from "./CourseMap.jsx";
 import { MapLink } from "./MapLink.jsx";
 import { DayPicker } from "./DayPicker.jsx";
+import { KakaoSendButton } from "./KakaoButtons.jsx";
 import { TAG_LABELS, activityTag, rankAlternatives, lostActivities, wantedTag, SEASIDE } from "./activityTags.js";
 import { ACTIVITY_LABELS } from "./preferences.js";
 import { useLanguage } from "./i18n.js";
@@ -240,6 +241,16 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
           <small>{result ? "동선·식사 시간을 AI와 함께 다듬어요" : "코스를 만드는 중이에요…"}</small></span>
         <span className="chat-cta-arrow" aria-hidden="true">→</span>
       </button>
+      {result && <KakaoSendButton build={() => {
+        const cands = JSON.parse(payload).candidates;
+        const course = result.timeline.map(r => `${clock(r.arrival)} ${cands[r.id].name}`).join(" → ") || "방문할 곳을 더 담아 주세요";
+        const cut = (t, n) => (t.length > n ? t.slice(0, n - 1) + "…" : t);
+        return { title: cut(`${start} 여행 계획 · ${visitDate}`, 60), url: window.location.href, items: [
+          { title: "하고 싶은 활동", description: cut(`${activityNames} · ${conditions}`, 120) },
+          { title: "코스", description: cut(course, 120) },
+          { title: "바다 날씨", description: cut(`${forecastText} 출발 전 기상청 특보를 확인하세요.`, 120) },
+        ] };
+      }} />}
       {!!result?.stops.length && <div className="course-map-card"><CourseMap stops={result.stops} />
         <p className="hint">이동시간과 영업 여부는 각 장소의 지도에서 확인하세요.</p></div>}
     </aside>

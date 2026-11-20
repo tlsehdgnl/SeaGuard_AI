@@ -1,6 +1,7 @@
 import { ShelterFinder } from "./ShelterFinder.jsx";
 import { CatalogBrowser } from "./CatalogBrowser.jsx";
 import { AccountProvider, AccountPage, useAccount } from "./Account.jsx";
+import { KakaoToast } from "./KakaoButtons.jsx";
 import { JourneyGuide } from "./JourneyGuide.jsx";
 import { MyPage } from "./MyPage.jsx";
 import { listPlans, savePlan, PLAN_PREFIX } from "./savedPlans.js";
@@ -1242,4 +1243,4 @@ function Place({ place, onFeedback, selected, onToggle }) {
     </article>
   );
 }
-createRoot(document.getElementById("root")).render(<LanguageProvider><AccountProvider>{["/admin", "/admin/"].includes(location.pathname) ? <Admin /> : ["/login", "/login/"].includes(location.pathname) ? <AccountPage/> : <App />}</AccountProvider></LanguageProvider>);
+createRoot(document.getElementById("root")).render(<LanguageProvider><AccountProvider><KakaoToast/>{["/admin", "/admin/"].includes(location.pathname) ? <Admin /> : ["/login", "/login/"].includes(location.pathname) ? <AccountPage/> : <App />}</AccountProvider></LanguageProvider>);

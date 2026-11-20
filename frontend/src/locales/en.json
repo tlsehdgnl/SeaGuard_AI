@@ -930,5 +930,16 @@
   "활동이 바뀌어요": "Activity changes",
   "같은 활동 유지": "Keeps the activity",
   "야외 걷기·풍경": "Outdoor walk & views",
-  "실내 관람": "Indoor visit"
+  "실내 관람": "Indoor visit",
+  "카카오톡으로 요약 받기": "Get the summary on KakaoTalk",
+  "카카오톡으로 보냈어요": "Sent to KakaoTalk",
+  "코스·날씨·계획 링크를 나와의 채팅에 저장해요": "Saves route, weather and plan link to your own chat",
+  "카카오 로그인 후 바로 보내 드려요": "Sign in with Kakao to send",
+  "자동차 추천 경로 · 약": "Recommended drive · about",
+  "실시간 교통 반영 · 카카오모빌리티": "live traffic · Kakao Mobility",
+  "원활": "Smooth",
+  "서행": "Slow",
+  "정체": "Jammed",
+  "도보·대중교통을 골랐어도 이 경로는 자동차 기준이에요. 실제 교통은 출발 직전 다시 확인하세요.": "This route is for driving even if you chose walking or transit. Check traffic again before leaving.",
+  "실시간 경로를 불러오지 못해 방문 순서만 직선으로 표시했어요.": "Live route unavailable, showing straight lines between stops."
 }

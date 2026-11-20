@@ -1,0 +1,226 @@
+"""Kakao: login (OAuth), "send to me" summary messages, and car routes with live traffic.
+
+Every feature is off until its keys exist, and the rest of the app works without it.
+Kakao tokens live only in HttpOnly cookies scoped to /api/kakao; JS never sees them.
+
+Env:
+  KAKAO_REST_API_KEY      Kakao Developers REST API key (login + messages)
+  KAKAO_CLIENT_SECRET     optional, if "Client Secret" is enabled in the Kakao app
+  KAKAO_REDIRECT_URI      https://<backend>/api/kakao/callback (registered in the Kakao app)
+  KAKAO_RETURN_URL        where to send the browser after login (the frontend), e.g. http://localhost:5173/
+  KAKAO_MOBILITY_KEY      Kakao Mobility key for routes (falls back to KAKAO_REST_API_KEY)
+  KAKAO_ROUTE_URL         waypoints-directions endpoint (default below)
+"""
+import hashlib
+import hmac
+import json
+import os
+import secrets
+import time
+from urllib.parse import urlencode
+
+import httpx
+from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi.responses import RedirectResponse
+from pydantic import BaseModel, Field
+
+from . import accounts
+
+router = APIRouter(prefix="/api/kakao")
+TOKEN = "depart_kakao"
+STATE = "depart_kakao_state"
+ROUTE_URL = "https://apis-navi.kakaomobility.com/v1/waypoints/directions"
+# traffic_state -> UI level (Kakao: 0 unknown, 1 jam, 2 slow, 3 slower, 4 smooth, 6 accident/closed)
+TRAFFIC = {1: "jam", 2: "slow", 3: "slow", 4: "smooth", 6: "jam"}
+_route_cache = {}
+
+
+def rest_key():
+    return os.getenv("KAKAO_REST_API_KEY", "")
+
+
+def secure():
+    return bool(os.getenv("VERCEL"))
+
+
+def return_url(status):
+    base = os.getenv("KAKAO_RETURN_URL") or "http://localhost:5173/"
+    return base + ("&" if "?" in base else "?") + "kakao=" + status
+
+
+@router.get("/config")
+def config(request: Request, response: Response):
+    accounts.no_cache(response)
+    return {
+        "login": bool(rest_key() and os.getenv("KAKAO_REDIRECT_URI") and os.getenv("SUPABASE_URL")),
+        "route": bool(os.getenv("KAKAO_MOBILITY_KEY") or rest_key()),
+        "connected": bool(request.cookies.get(TOKEN)),  # Kakao token present -> can send messages
+    }
+
+
+@router.get("/login")
+def login():
+    if not (rest_key() and os.getenv("KAKAO_REDIRECT_URI")):
+        raise HTTPException(503, "카카오 로그인 설정 전이에요.")
+    state = secrets.token_urlsafe(24)
+    url = "https://kauth.kakao.com/oauth/authorize?" + urlencode({
+        "client_id": rest_key(), "redirect_uri": os.getenv("KAKAO_REDIRECT_URI"), "response_type": "code",
+        "state": state, "scope": "profile_nickname,talk_message",
+    })
+    response = RedirectResponse(url, status_code=302)
+    response.set_cookie(STATE, state, max_age=600, httponly=True, secure=secure(), samesite="lax", path="/api/kakao")
+    return response
+
+
+def kakao_password(kakao_id):
+    """Server-only derived secret for the Supabase twin of a Kakao user (never stored or shown)."""
+    _, key = accounts.settings()
+    return hmac.new(key.encode(), f"kakao:{kakao_id}".encode(), hashlib.sha256).hexdigest()
+
+
+async def send_memo(token, template):
+    async with httpx.AsyncClient(timeout=10) as client:
+        return await client.post("https://kapi.kakao.com/v2/api/talk/memo/default/send",
+                                 headers={"Authorization": f"Bearer {token}"},
+                                 data={"template_object": json.dumps(template, ensure_ascii=False)})
+
+
+def site_link():
+    base = (os.getenv("KAKAO_RETURN_URL") or "http://localhost:5173/").split("?")[0]
+    return {"web_url": base, "mobile_web_url": base}
+
+
+@router.get("/callback")
+async def callback(request: Request, code: str = "", state: str = "", error: str = ""):
+    if error or not code:
+        return RedirectResponse(return_url("cancel"), status_code=302)
+    if not state or not hmac.compare_digest(state, request.cookies.get(STATE, "")):
+        return RedirectResponse(return_url("error"), status_code=302)
+    form = {"grant_type": "authorization_code", "client_id": rest_key(),
+            "redirect_uri": os.getenv("KAKAO_REDIRECT_URI"), "code": code}
+    if os.getenv("KAKAO_CLIENT_SECRET"):
+        form["client_secret"] = os.getenv("KAKAO_CLIENT_SECRET")
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            token = (await client.post("https://kauth.kakao.com/oauth/token", data=form)).raise_for_status().json()
+            me = (await client.get("https://kapi.kakao.com/v2/user/me",
+                                   headers={"Authorization": f"Bearer {token['access_token']}"})).raise_for_status().json()
+    except (httpx.HTTPError, KeyError, ValueError):
+        return RedirectResponse(return_url("error"), status_code=302)
+
+    kakao_id = str(me["id"])
+    nickname = ((me.get("properties") or {}).get("nickname") or "카카오 여행자")[:24]
+    username = f"kakao_{kakao_id}"
+    email, password = accounts.identity(username), kakao_password(kakao_id)
+    joined = False
+    result = await accounts.supa("POST", "/auth/v1/token?grant_type=password", json={"email": email, "password": password})
+    if result.status_code != 200:  # first Kakao login: create the account, then sign in
+        created = await accounts.supa("POST", "/auth/v1/admin/users", json={
+            "email": email, "password": password, "email_confirm": True,
+            "user_metadata": {"username": username, "nickname": nickname, "provider": "kakao"}})
+        if created.status_code not in (200, 201):
+            return RedirectResponse(return_url("error"), status_code=302)
+        joined = True
+        result = await accounts.supa("POST", "/auth/v1/token?grant_type=password", json={"email": email, "password": password})
+        if result.status_code != 200:
+            return RedirectResponse(return_url("error"), status_code=302)
+
+    status = "login"
+    if joined and "talk_message" in (token.get("scope") or ""):
+        welcome = {"object_type": "text", "link": site_link(), "button_title": "DePartner 열기",
+                   "text": f"{nickname}님, DePartner에 카카오로 가입했어요 🌊\n동해 여행 계획을 저장하면 이곳 '나와의 채팅'으로 요약을 보내드릴게요."}
+        sent = await send_memo(token["access_token"], welcome)
+        status = "joined_sent" if sent.status_code == 200 else "joined"
+    elif joined:
+        status = "joined"
+
+    response = RedirectResponse(return_url(status), status_code=302)
+    accounts.cookies(response, result.json())
+    response.set_cookie(TOKEN, token["access_token"], max_age=int(token.get("expires_in", 21599)),
+                        httponly=True, secure=secure(), samesite="lax", path="/api/kakao")
+    response.delete_cookie(STATE, path="/api/kakao")
+    return response
+
+
+class Item(BaseModel):
+    title: str = Field(min_length=1, max_length=60)
+    description: str = Field(max_length=120)
+
+
+class Memo(BaseModel):
+    title: str = Field(min_length=1, max_length=60)
+    items: list[Item] = Field(min_length=2, max_length=3)  # Kakao list template: 2-3 rows
+    url: str = Field(max_length=2000)
+
+
+@router.post("/memo")
+async def memo(body: Memo, request: Request, response: Response):
+    accounts.origin_check(request)
+    accounts.no_cache(response)
+    token = request.cookies.get(TOKEN)
+    if not token:
+        raise HTTPException(401, "카카오로 로그인하면 카카오톡으로 보낼 수 있어요.")
+    base = site_link()["web_url"]
+    url = body.url if body.url.startswith(base) else base  # links must stay on our registered domain
+    link = {"web_url": url, "mobile_web_url": url}
+    template = {"object_type": "list", "header_title": body.title, "header_link": link,
+                "contents": [{"title": i.title, "description": i.description, "link": link} for i in body.items],
+                "buttons": [{"title": "계획 열기", "link": link}]}
+    sent = await send_memo(token, template)
+    if sent.status_code == 200:
+        return {"ok": True}
+    if sent.status_code in (401, 403):
+        raise HTTPException(403, "카카오톡 메시지 보내기 동의가 필요해요. 카카오로 다시 로그인해 주세요.")
+    raise HTTPException(502, "카카오톡으로 보내지 못했어요. 잠시 후 다시 시도해 주세요.")
+
+
+class RouteRequest(BaseModel):
+    points: list[tuple[float, float]] = Field(min_length=2, max_length=30)  # [lat, lng] in visit order
+
+
+def simplify(route):
+    """Kakao route -> legs (per section) + traffic segments [{level, path:[[lat,lng]...]}]."""
+    legs, segments = [], []
+    for section in route.get("sections", []):
+        legs.append({"distance": section.get("distance"), "duration": section.get("duration")})
+        for road in section.get("roads", []):
+            v = road.get("vertexes", [])
+            path = [[v[i + 1], v[i]] for i in range(0, len(v) - 1, 2)]
+            level = TRAFFIC.get(road.get("traffic_state"), "unknown")
+            if segments and segments[-1]["level"] == level and segments[-1]["path"][-1] == path[0]:
+                segments[-1]["path"] += path[1:]
+            elif path:
+                segments.append({"level": level, "path": path})
+    summary = route.get("summary", {})
+    return {"distance": summary.get("distance"), "duration": summary.get("duration"), "legs": legs, "segments": segments}
+
+
+@router.post("/route")
+async def route(body: RouteRequest, response: Response):
+    accounts.no_cache(response)
+    key = os.getenv("KAKAO_MOBILITY_KEY") or rest_key()
+    if not key:
+        raise HTTPException(503, "카카오 길찾기 설정 전이에요.")
+    cache_key = json.dumps(body.points)
+    hit = _route_cache.get(cache_key)
+    if hit and time.monotonic() - hit[0] < 120:  # traffic changes; reuse for 2 minutes only
+        return hit[1]
+    pts = [{"x": lng, "y": lat} for lat, lng in body.points]
+    payload = {"origin": pts[0], "destination": pts[-1], "waypoints": pts[1:-1], "priority": "RECOMMEND", "summary": False}
+    try:
+        async with httpx.AsyncClient(timeout=12) as client:
+            r = await client.post(os.getenv("KAKAO_ROUTE_URL") or ROUTE_URL, json=payload,
+                                  headers={"Authorization": f"KakaoAK {key}"})
+        if r.status_code in (401, 403):
+            raise HTTPException(503, "카카오 길찾기 사용 권한을 확인해 주세요.")
+        r.raise_for_status()
+        found = r.json()["routes"][0]
+    except (httpx.HTTPError, KeyError, IndexError, ValueError):
+        raise HTTPException(502, "실시간 경로를 불러오지 못했어요.") from None
+    if found.get("result_code") not in (0, None):
+        raise HTTPException(422, found.get("result_msg") or "경로를 찾지 못했어요.")
+    answer = {**simplify(found), "checked_at": int(time.time())}
+    _route_cache[cache_key] = (time.monotonic(), answer)
+    if len(_route_cache) > 100:
+        _route_cache.pop(next(iter(_route_cache)))
+    return answer

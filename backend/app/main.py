@@ -20,6 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .catalog import router as catalog_router
 from .accounts import router as accounts_router
+from .kakao import router as kakao_router
 from . import fishing
 from .analytics import router as analytics_router
 from .integrations import router as integrations_router
@@ -32,6 +33,7 @@ from .guide import build_guide, CATALOG, ACTIVITY_ACTIONS
 app = FastAPI(title="DePartner AI", version="1.0.0")
 app.include_router(catalog_router)
 app.include_router(accounts_router)
+app.include_router(kakao_router)
 app.include_router(programs_router)
 app.include_router(course_router)
 app.include_router(guide_chat_router)
