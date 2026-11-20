@@ -5,6 +5,7 @@ import { weatherSummary } from "./weatherSummary.js";
 import { BEACHES, destinationName } from "./beaches.js";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { flushSync } from "react-dom";
 import { activities, beachRegion, regions, shops, shopCategory, shopSearches } from "./nearby.js";
 import QRCode from "qrcode";
 import {
@@ -22,6 +23,8 @@ import {
 } from "./preferences.js";
 import "./style.css";
 import "./journey.css";
+import "./fx.css";
+import "./fx.js";
 import Admin from "./Admin.jsx";
 import { LanguageProvider, LanguageSwitch, useLanguage, translate } from "./i18n.js";
 import { track, trackLink } from "./analytics.js";
@@ -288,7 +291,11 @@ function App() {
   const [step, setStep] = useState(() => new URLSearchParams(location.hash.slice(1)).has("beach") ? 2 : 0);
   const flowHeading = useRef(null);
   function go(next) {
-    setStep(next);
+    // Animated step change (View Transitions API); plain update when unsupported or reduced motion.
+    if (document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      document.documentElement.dataset.nav = next < step ? "back" : "forward";
+      document.startViewTransition(() => flushSync(() => setStep(next)));
+    } else setStep(next);
     requestAnimationFrame(() => {
       flowHeading.current?.focus({preventScroll:true});
       window.scrollTo(0,0);
