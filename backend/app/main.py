@@ -24,6 +24,7 @@ from . import fishing
 from .analytics import router as analytics_router
 from .integrations import router as integrations_router
 from .ai import select_json
+from .guide_chat import router as guide_chat_router
 from .course import router as course_router
 from .programs import router as programs_router
 from .guide import build_guide, CATALOG, ACTIVITY_ACTIONS
@@ -33,6 +34,7 @@ app.include_router(catalog_router)
 app.include_router(accounts_router)
 app.include_router(programs_router)
 app.include_router(course_router)
+app.include_router(guide_chat_router)
 app.include_router(analytics_router)
 app.include_router(integrations_router)
 app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(","), allow_methods=["GET", "POST"], allow_headers=["*"])
