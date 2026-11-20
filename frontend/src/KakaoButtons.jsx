@@ -62,6 +62,6 @@ export function KakaoToast() {
     return () => clearTimeout(timer);
   }, []);
   if (!text) return null;
-  return <div className="kakao-toast" role="status"><span aria-hidden="true"><Bubble /></span>{text}
+  return <div className="kakao-toast" role="status"><span aria-hidden="true"><Bubble /></span><p className="kakao-toast-text">{text}</p>
     <button type="button" aria-label="알림 닫기" onClick={() => setText("")}>×</button></div>;
 }

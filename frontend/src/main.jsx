@@ -632,9 +632,13 @@ function App() {
   }
   if (!started) return <main className={`horizon${entering ? " is-entering" : ""}`} aria-busy={entering}>
     <div className="horizon-ocean" aria-hidden="true"/>
-    <LanguageSwitch className="landing-language"/>
-    <a className="landing-account" href={account.user?"/?mypage=1":"/login"}>{account.user ? (language==="en"?"My account":"내 계정") : (language==="en"?"Sign in / Join":"로그인 / 회원가입")}</a>
-    <a className="landing-admin" href="/admin">관리자 통계 보기</a>
+    <nav className="landing-top" aria-label={language==="en"?"Site menu":"사이트 메뉴"}>
+      <a className="landing-admin" href="/admin">관리자 통계 보기</a>
+      <div className="landing-top-right">
+        <LanguageSwitch className="landing-language"/>
+        <a className="landing-account" href={account.user?"/?mypage=1":"/login"}>{account.user ? (language==="en"?"My account":"내 계정") : (language==="en"?"Sign in / Join":"로그인 / 회원가입")}</a>
+      </div>
+    </nav>
     <div className="landing-copy"><div className="landing-brand"><img src="/departner-mark.svg" alt=""/><span><b>D</b>ePartner</span></div><p className="landing-purpose">바다를 만나는 시간까지, 동해 여행의 파트너</p><h1>동해로 여행을<br/>떠나볼까요?</h1>
       <button className="journey-start" disabled={entering} onClick={startJourney}>여행 시작하기 <span aria-hidden="true">→</span></button>
     </div>

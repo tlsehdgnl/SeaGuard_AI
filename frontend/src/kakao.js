@@ -59,7 +59,7 @@ export function useLiveRoute(points, enabled) {
 export const minutes = (sec) => Math.max(1, Math.round((sec || 0) / 60));
 export const km = (m) => ((m || 0) / 1000).toFixed(1);
 
-/** Banner messages after the Kakao OAuth redirect (?kakao=...). Removes the flag from the URL. */
+/** Banner messages (\n = intended line break) after the Kakao OAuth redirect (?kakao=...). Removes the flag from the URL. */
 export function takeKakaoStatus() {
   const params = new URLSearchParams(location.search);
   const status = params.get("kakao");
@@ -67,10 +67,10 @@ export function takeKakaoStatus() {
   params.delete("kakao");
   history.replaceState(null, "", location.pathname + (params.toString() ? "?" + params : "") + location.hash);
   return {
-    joined_sent: "카카오로 가입했어요! 카카오톡 '나와의 채팅'으로 가입 안내를 보냈어요.",
-    joined: "카카오로 가입했어요! 이제 계획을 카카오톡으로 보낼 수 있어요.",
-    login: "카카오로 로그인했어요.",
-    cancel: "카카오 로그인을 취소했어요.",
-    error: "카카오 로그인에 실패했어요. 잠시 후 다시 시도해 주세요.",
+    joined_sent: "카카오로 가입했어요!\n카카오톡 '나와의 채팅'으로 가입 안내를 보냈어요.",
+    joined: "카카오로 가입했어요!\n이제 계획을 카카오톡으로 보낼 수 있어요.",
+    login: "카카오로\n로그인했어요.",
+    cancel: "카카오 로그인을\n취소했어요.",
+    error: "카카오 로그인에 실패했어요.\n잠시 후 다시 시도해 주세요.",
   }[status] || "";
 }

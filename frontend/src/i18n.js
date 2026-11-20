@@ -19,7 +19,10 @@ export function LanguageSwitch({className=''}) {
   const {language, setLanguage} = useLanguage();
   return React.createElement('button', {type:'button', className:'language-switch '+className,
     lang:language === 'ko' ? 'en' : 'ko', 'aria-label':language === 'ko' ? 'Switch to English' : '한국어로 전환',
-    onClick:()=>setLanguage(language === 'ko' ? 'en' : 'ko')}, language === 'ko' ? 'EN · English' : 'KO · 한국어');
+    onClick:()=>setLanguage(language === 'ko' ? 'en' : 'ko')},
+    // Short code always shows; the full name can hide on narrow screens (aria-label keeps it accessible).
+    React.createElement('span', {className:'lang-code'}, language === 'ko' ? 'EN' : 'KO'),
+    React.createElement('span', {className:'lang-name'}, language === 'ko' ? ' · English' : ' · 한국어'));
 }
 const phrases = Object.keys(messages).sort((a,b)=>b.length-a.length);
 const escaped = phrases.map(text=>text.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'));
