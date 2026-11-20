@@ -38,7 +38,10 @@ class SeaGuardTests(unittest.TestCase):
                 validate_values(dict(wave_height=value, wind_speed=1, precipitation=0, temperature=20))
 
     def test_routes(self):
-        self.assertEqual(len(self.client.get("/api/beaches").json()), 3)
+        beaches = self.client.get("/api/beaches").json()
+        self.assertEqual(len(beaches), 14)
+        for beach in beaches:
+            self.assertEqual(self.client.get(f"/api/risk/{beach['id']}?mode=demo").status_code, 200)
         self.assertEqual(self.client.get("/api/health").status_code, 200)
         self.assertEqual(self.client.get("/api/risk/unknown").status_code, 404)
         self.assertEqual(self.client.get("/api/risk/mangsang?mode=invalid").status_code, 422)
