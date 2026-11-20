@@ -202,17 +202,17 @@ body::after {
 @keyframes vt-in-back { from { opacity: 0; transform: translateX(-60px); filter: blur(8px); } }
 
 /* ── Cards: soft depth + cursor spotlight ──────────────────── */
-.journey-app .card:not(#plan):not(#activity) { box-shadow: var(--shadow-soft); border-color: rgb(20 42 62 / .07) !important; }
+.journey-app :where(.card:not(#plan):not(#activity)) { box-shadow: var(--shadow-soft); border-color: rgb(20 42 62 / .07) !important; }
 .journey-app :is(.metric, .place, .weather-postcard, .official-grid > a, .outlook, .actions, .official, .plan-summary, .share-panel) {
   position: relative; transition: transform .55s var(--spring), box-shadow .35s ease, border-color .3s;
 }
 .journey-app :is(.metric, .place, .official-grid > a):hover { transform: translateY(-4px); box-shadow: var(--shadow-lift); }
-.journey-app :is(.metric, .place, .weather-postcard, .official-grid > a, .activity-postcards button, #plan .destination-tabs button)::before {
+.journey-app :where(.metric, .place, .weather-postcard, .official-grid > a, .activity-postcards button, #plan .destination-tabs button)::before {
   content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 1;
   background: radial-gradient(260px circle at var(--mx, 50%) var(--my, -40%), rgb(57 184 198 / .14), transparent 60%);
   opacity: 0; transition: opacity .35s;
 }
-.journey-app :is(.metric, .place, .weather-postcard, .official-grid > a, .activity-postcards button, #plan .destination-tabs button):hover::before { opacity: 1; }
+.journey-app :where(.metric, .place, .weather-postcard, .official-grid > a, .activity-postcards button, #plan .destination-tabs button):hover::before { opacity: 1; }
 /* keep existing selected-check marker on route cards */
 .journey-app .route-card.is-selected::before {
   background: none; opacity: 1; inset: auto; right: 12px; top: 10px; content: "✓";
@@ -756,3 +756,96 @@ body::after {
 }
 .journey-app .fish-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--sea-2); box-shadow: 0 0 0 3px rgb(57 184 198 / .22); }
 @keyframes badge-in { from { opacity: 0; transform: translateY(-6px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+
+/* ── Visit-date chips (DayPicker) ──────────────────────────── */
+.journey-app .day-picker { margin: 4px 0 18px; padding: 14px 16px; border-radius: 20px; background: rgb(255 255 255 / .7); border: 1px solid rgb(20 42 62 / .07); box-shadow: var(--shadow-soft); }
+.journey-app .day-picker-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-bottom: 10px; }
+.journey-app .day-picker-label { font-size: 15px; font-weight: 750; color: var(--ink); }
+.journey-app .day-picker-hint { font-size: 12.5px; color: #6d7f8e; }
+.journey-app .day-chips { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 8px; }
+.journey-app .day-chip {
+  display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; padding: 9px 4px 8px !important;
+  border-radius: 16px !important; border: 1px solid rgb(20 42 62 / .09) !important; background: #fff !important; color: var(--ink) !important;
+  transition: transform .45s var(--spring), box-shadow .25s, background-color .25s;
+}
+.journey-app .day-chip:hover { transform: translateY(-2px); box-shadow: var(--shadow-soft); }
+.journey-app .day-chip:active { transform: scale(.95); }
+.journey-app .dc-tag { font-size: 11.5px; font-weight: 700; color: #6d7f8e; }
+.journey-app .dc-day { font-size: 21px; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.journey-app .dc-month { font-size: 10.5px; color: #8a99a6; }
+.journey-app .day-chip.is-sun :is(.dc-tag, .dc-day) { color: #d6453d; }
+.journey-app .day-chip.is-sat :is(.dc-tag, .dc-day) { color: #2f6fd0; }
+.journey-app .day-chip.is-on {
+  background: linear-gradient(150deg, var(--navy), #1c5470 60%, var(--sea)) !important; border-color: transparent !important;
+  box-shadow: 0 10px 22px -10px rgb(15 90 120 / .75); animation: chip-pop .5s var(--spring);
+}
+.journey-app .day-chip.is-on :is(.dc-tag, .dc-day, .dc-month) { color: #fff !important; }
+.journey-app .course-settings .day-picker { flex: 1 1 100%; margin: 0 0 4px; padding: 0; background: none; border: 0; box-shadow: none; }
+.journey-app .course-settings .day-picker-label { font-size: 12.5px; font-weight: 500; color: #4b6275; }
+@media (max-width: 600px) {
+  .journey-app .day-chips { gap: 4px; }
+  .journey-app .day-chip { padding: 7px 0 6px !important; border-radius: 12px !important; }
+  .journey-app .dc-day { font-size: 17px; }
+  .journey-app .dc-tag { font-size: 10px; }
+  .journey-app .dc-month { display: none; }
+}
+
+/* ── Add-to-route check on shop & facility cards ───────────── */
+.journey-app .route-card { position: relative; }
+.journey-app .route-card::before {
+  content: "+"; position: absolute; inset: auto; top: 12px; right: 12px; z-index: 3; pointer-events: none;
+  display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%;
+  font-size: 18px; font-weight: 700; line-height: 1; color: var(--sea);
+  background: #fff; border: 2px solid rgb(15 143 154 / .35); opacity: 1;
+  transition: background-color .25s, color .25s, border-color .25s, transform .4s var(--spring);
+}
+.journey-app .route-card:hover::before { border-color: var(--sea); transform: scale(1.08); opacity: 1; background: #fff; }
+.journey-app .route-card.is-selected::before {
+  content: "✓"; color: #fff; background: var(--sea); border-color: var(--sea); font-size: 15px;
+  top: 12px; right: 12px; box-shadow: 0 0 0 4px rgb(57 184 198 / .22); animation: check-pop .45s var(--spring);
+}
+.journey-app .route-card.is-selected {
+  border: 2px solid var(--sea) !important; background: linear-gradient(160deg, #ebf8f9, #fff 70%) !important;
+  box-shadow: 0 10px 26px -12px rgb(15 120 140 / .55) !important;
+}
+.journey-app .shop-cards li { padding-right: 46px !important; }
+.journey-app .place .place-top { padding-right: 38px; }
+.journey-app .route-card .route-toggle[aria-pressed="true"]::before { content: none; }
+
+/* ── Indoor activities: clear blocks ───────────────────────── */
+.journey-app .indoor .indoor-lead { margin: 0 0 14px; font-size: 13.5px; color: #4b6275; }
+.journey-app .indoor .indoor-lead b { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 2px solid rgb(15 143 154 / .45); color: var(--sea); font-size: 13px; line-height: 1; vertical-align: -3px; }
+.journey-app .indoor-block { padding: 16px 18px; border-radius: 20px; background: rgb(246 250 252 / .8); border: 1px solid rgb(20 42 62 / .06); margin-bottom: 14px; }
+.journey-app .indoor-h { display: flex; align-items: center; gap: 8px; margin: 0 0 10px !important; font-size: 17px !important; letter-spacing: -.02em; }
+.journey-app .group-h { display: flex; align-items: center; gap: 8px; margin: 12px 0 8px; font-size: 13.5px; font-weight: 700; color: #33495c; }
+.journey-app .group-h::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: #12a150; }
+.journey-app .group-h.is-check::before { background: #f2a516; }
+.journey-app .group-h span { font-size: 11.5px; font-weight: 800; padding: 1px 8px; border-radius: 999px; background: #e6f2f4; color: #2b5f6a; }
+.journey-app .programs-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 6px; }
+.journey-app .programs-head .indoor-h { margin: 0 !important; }
+.journey-app .programs-count { font-size: 12.5px; padding: 4px 11px; border-radius: 999px; background: #e6f8ec; color: #0b6b35; }
+.journey-app .programs ul { gap: 8px; }
+.journey-app .programs li {
+  display: flex; flex-direction: column; gap: 2px; padding: 11px 13px !important; margin: 0 0 8px;
+  border: 1px solid rgb(20 42 62 / .07) !important; border-radius: 14px; background: #fff;
+}
+.journey-app .programs li.st-closed { opacity: .62; }
+.journey-app .programs li p { margin: 1px 0 !important; }
+.journey-app .pg-top { display: flex; gap: 6px; align-items: center; }
+.journey-app .pg-status, .journey-app .pg-dday { font-size: 11px; font-weight: 750; padding: 2px 8px; border-radius: 999px; }
+.journey-app .pg-status.st-open { background: #e6f8ec; color: #0b6b35; }
+.journey-app .pg-status.st-soon { background: #e5f0f8; color: #1d5a80; }
+.journey-app .pg-status.st-closed { background: #eef2f5; color: #6d7f8e; }
+.journey-app .pg-dday { background: #fff1e6; color: #c2582f; }
+
+/* ── Plan fixes: substituted meal, lost activity, activity-keeping swap ── */
+.journey-app .plan-fix { margin: 10px 0; padding: 12px 16px; border-radius: 16px; border: 1px solid; animation: rise-in .5s var(--ease-out) both; }
+.journey-app .plan-fix p { margin: 0 0 8px; font-size: 13.5px; line-height: 1.55; }
+.journey-app .plan-fix.is-meal { background: #fff7ec; border-color: #f6d9b0; color: #6b4a14; }
+.journey-app .plan-fix.is-lost { background: #eef7ff; border-color: #cfe3f5; color: #1d4a6e; }
+.journey-app .plan-fix.is-swap { background: rgb(246 250 252 / .9); border-color: rgb(20 42 62 / .1); color: #33495c; }
+.journey-app .plan-fix-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.journey-app .plan-fix-actions button { border-radius: 999px !important; padding: 8px 14px !important; font-size: 13px; }
+.journey-app .plan-fix-actions .fix-primary { background: linear-gradient(120deg, var(--navy), var(--sea)) !important; color: #fff !important; border: 0 !important; box-shadow: 0 6px 16px -8px rgb(15 90 120 / .7); }
+.journey-app .plan-fix-actions .fix-primary small { margin-left: 6px; padding: 1px 7px; border-radius: 999px; background: rgb(255 255 255 / .2); font-size: 11px; }
+.journey-app .plan-fix .fix-select select { border-radius: 999px !important; padding: 7px 12px; font-size: 13px; }

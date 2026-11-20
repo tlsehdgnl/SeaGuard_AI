@@ -86,3 +86,25 @@ class AstraRequestTests(unittest.TestCase):
         self.assertEqual(body['response_format'], {'type': 'json_object'})
         with patch.dict(os.environ, {'LLM_REASONING_EFFORT': 'off'}):
             self.assertNotIn('reasoning_effort', ai.request_body('other', 'i', {}))
+
+
+class BackupMealTests(unittest.TestCase):
+    def course(self, chosen_windows):
+        return Course(start='Beach', activities='', conditions='', weather='', extras=0,
+            start_minute=600, end_minute=960, meal_times=[720],
+            candidates=[Stop(name='Chosen', detail='', meal=True, duration=60, required=True, windows=chosen_windows),
+                        Stop(name='Backup', detail='', meal=True, duration=60, backup=True),
+                        Stop(name='Backup2', detail='', meal=True, duration=60, backup=True)])
+
+    def test_closed_restaurant_is_replaced_by_backup(self):
+        result = schedule(self.course([]), [0, 1, 2])  # chosen is closed that day
+        self.assertEqual(result['order'], [1])
+        self.assertEqual(result['missing_meals'], 0)
+        self.assertEqual(result['substitutions'], [{'from': 0, 'to': 1}])
+        self.assertEqual(result['skipped'], [0])        # unused Backup2 is not reported
+
+    def test_open_restaurant_keeps_priority_over_backup(self):
+        result = schedule(self.course(None), [1, 2, 0])  # even if a backup is ordered first
+        self.assertEqual(result['order'], [0])
+        self.assertEqual(result['substitutions'], [])
+        self.assertEqual(result['skipped'], [])

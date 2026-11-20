@@ -2,6 +2,9 @@ import { ShelterFinder } from "./ShelterFinder.jsx";
 import { StopSafety } from "./StopSafety.jsx";
 import { CourseMap } from "./CourseMap.jsx";
 import { MapLink } from "./MapLink.jsx";
+import { DayPicker } from "./DayPicker.jsx";
+import { TAG_LABELS, activityTag, rankAlternatives, lostActivities, wantedTag, SEASIDE } from "./activityTags.js";
+import { ACTIVITY_LABELS } from "./preferences.js";
 import { useLanguage } from "./i18n.js";
 import coordinates from "./routeCoordinates.json";
 import React, { useState, useEffect, useRef } from "react";
@@ -44,6 +47,8 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
     name, detail: [regions[key], kind, address].join(" · "), required: required.has(name), meal:shopCategory(kind) === "식당",
   })));
   places.push(...indoorPlaces.map(place => ({name:place.name, detail:[place.address,...place.checks].join(" · ").slice(0,190), required:true})));
+  places.push(...Object.entries(activities).flatMap(([key, rows]) => rows.map(([name, detail]) => ({
+    name, detail: regions[key] + " · " + detail, required: required.has(name) }))).filter(p => !places.some(q => q.name === p.name)));
   const selected = profile.stops.map(name => places.find(place => place.name === name)).filter(Boolean);
   for (const place of profile.catalog || []) {
     if (selected.some(stop => stop.name === place.name)) continue;
@@ -53,11 +58,15 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
   }
   const wishes = profile.activity;
   const wanted = [];
+  const backups = [];
   for (const [activity, category] of [["food", "식당"], ["cafe", "카페·간식"]]) {
     if (!wishes.includes(activity) && !(activity === "food" && applied.meals.length)) continue;
     const rows = shops[region].filter(([,kind]) => shopCategory(kind) === category);
     const count = activity === "food" ? Math.max(0, applied.meals.length - selected.filter(s=>s.meal).length) : 1;
-    wanted.push(...rows.filter(([name]) => !required.has(name)).slice(0, count));
+    const free = rows.filter(([name]) => !required.has(name));
+    wanted.push(...free.slice(0, count));
+    // Two nearby backups ride along so a closed restaurant never leaves a meal empty.
+    if (activity === "food" && applied.meals.length) backups.push(...free.slice(count, count + 2));
   }
   const optional = (profile.budget === "free" ? [] : wanted)
     .map(([name,kind,address]) => ({ name, detail: kind+" · "+address, meal:shopCategory(kind) === "식당" }));
@@ -65,7 +74,9 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
     const [name, kind, address] = shops[region].find(([,kind]) => shopCategory(kind) === "카페·간식");
     optional.push({ name, detail: kind+" · "+address, meal:shopCategory(kind) === "식당" });
   }
-  const candidates = [{name:start, detail:"바다 조망 · 현장 통제와 공식 특보 확인 후 방문", required:true, coastal:true}, ...selected, ...optional.filter(place => !required.has(place.name))];
+  const backupStops = (profile.budget === "free" ? [] : backups).filter(([name]) => !optional.some(o => o.name === name))
+    .map(([name,kind,address]) => ({ name, detail: kind+" · "+address, meal:true, backup:true }));
+  const candidates = [{name:start, detail:"바다 조망 · 현장 통제와 공식 특보 확인 후 방문", required:true, coastal:true}, ...selected, ...optional.filter(place => !required.has(place.name)), ...backupStops];
   const minutes = profile.time_budget === "any" ? Infinity : Number(profile.time_budget);
   const payload = candidates.length && !loading ? JSON.stringify({
     beach_id:profile.beach, visit_date:visitDate, mode:profile.mode, coastal_closed:applied.closed,
@@ -138,7 +149,7 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
     <div className="course-title"><h3>바다와 함께하는 하루</h3><p>이동 계산 기준 지역 · {start}</p></div>
     <form className="course-settings" onSubmit={apply}>
       <fieldset disabled={sending}><legend>바다 시간에 맞추는 일정</legend>
-        <label>방문 날짜<input type="date" min={tripDate(0)} max={tripDate(6)} required value={visitDate} onChange={e=>{if(e.target.value>=tripDate(0) && e.target.value<=tripDate(6)) setVisitDate(e.target.value);}}/></label>
+        <DayPicker value={visitDate} onChange={setVisitDate} label="방문 날짜" />
         <label>출발 시간<input type="time" required value={settings.start} onChange={e=>setSettings({...settings,start:e.target.value})}/></label>
         <label>종료 시간<input type="time" required value={settings.end} onChange={e=>setSettings({...settings,end:e.target.value})}/></label>
         <label>식사 횟수<select value={settings.meals.length} onChange={e=>setSettings({...settings,meals:["12:00","17:00","10:00"].slice(0,Number(e.target.value))})}>{[0,1,2,3].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
@@ -157,12 +168,37 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
     {error && <p role="alert">{error} <button onClick={() => retry(n => n+1)}>다시 조회</button></p>}
     {result?.sea_plan && <SeaPlan plan={result.sea_plan} language={language} />}
     {result && <div aria-live="polite"><h4>{result.source === "ai" ? "AI 추천 방문 순서" : "거리 기반 방문 순서"} · 방문 {result.stops.length}곳</h4>
+      {(result.substitutions || []).map(({from, to}) => {
+        const was = JSON.parse(payload).candidates[from], now = JSON.parse(payload).candidates[to];
+        return <div key={from} className="plan-fix is-meal" role="status">
+          <p><b>🍽 {was.name}</b>이(가) 방문일에 쉬거나 시간이 맞지 않아 <b>{now.name}</b>(으)로 식사를 넣어 두었어요.</p>
+          <div className="plan-fix-actions">
+            <button type="button" className="fix-primary" onClick={() => replaceStop(was.name, now.name)}>{now.name}로 확정</button>
+            <button type="button" onClick={onAlternate}>다른 식당 고르기</button>
+          </div>
+        </div>;
+      })}
+      {(() => {
+        const cands = JSON.parse(payload).candidates;
+        const lost = result.timeline.length ? lostActivities(profile.activity, result.timeline.map(r => cands[r.id])) : [];
+        if (!lost.length) return null;
+        const used = new Set(cands.map(c => c.name));
+        return lost.map(key => {
+          const safe = p => !(applied.closed && SEASIDE.test(p.name + " " + p.detail));  // sea excluded -> no shore picks
+          const fits = p => !used.has(p.name) && !p.meal && activityTag(p) === wantedTag(key) && safe(p);
+          const pick = places.find(p => fits(p) && (activities[region] || []).some(([n]) => n === p.name)) || places.find(fits);
+          return <div key={key} className="plan-fix is-lost" role="status">
+            <p>원래 원했던 <b>‘{ACTIVITY_LABELS[key]}’</b>이(가) 지금 일정에 없어요. {pick ? `${TAG_LABELS[wantedTag(key)]} 장소를 다시 넣어 볼까요?` : ""}</p>
+            {pick && <div className="plan-fix-actions"><button type="button" className="fix-primary" onClick={() => replaceStop("", pick.name)}>＋ {pick.name} 넣기</button></div>}
+          </div>;
+        });
+      })()}
       {result.source === "basic" && <p className="hint">AI 응답을 사용할 수 없어 위치를 기준으로 방문 순서를 계산했어요.</p>}
       <p className="hint">이동시간은 직선거리 기반 추정치이며 실제 도로·교통·대중교통 시간표를 반영하지 않습니다. 이동수단 미선택 시 도보로 계산합니다.</p>
       <ol className="course-timeline">{result.timeline.map(row=>{const stop=JSON.parse(payload).candidates[row.id]; return <li key={row.id} data-place-name={stop.name} className={row.meal ? "is-meal" : undefined}>
         <span className="tl-time">{clock(row.arrival)}–{clock(row.departure)}</span>
         <div className="tl-body">
-          <div className="tl-head"><strong>{stop.name}</strong><span className="tl-kind">{row.coastal ? "바다 조망" : row.meal ? "식사" : "방문"}</span>
+          <div className="tl-head"><strong>{stop.name}</strong><span className="tl-kind">{row.coastal ? "바다 조망" : row.meal ? (stop.backup ? "대체 식당" : "식사") : "방문"}</span>
             <MapLink href={"https://map.naver.com/p/search/"+encodeURIComponent("동해시 "+stop.name)} name={stop.name} /></div>
           <p>{stop.detail}</p><p className="tl-meta">예상 이동 {row.travel_minutes} min · {row.distance_km === null ? "좌표 미확인" : `${row.distance_km} km`} · {row.coastal ? "시간별 예보 반영 · 현장 확인 필요" : row.hours_known ? "입력한 운영시간 반영" : "운영시간 확인 필요"}</p>
           <ShelterFinder key={stop.name} name={stop.name} placePoint={stop.point} compact />
@@ -170,21 +206,31 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
         </div>
       </li>})}</ol>
       {!result.timeline.length && minutes <= 30 && <p role="status">짧은 조망은 15분이며 이동시간도 필요해요. 방문 시간을 바꾸거나 가까운 장소를 선택해 주세요.</p>}
-      {result.skipped.map(i=>{
+      {result.skipped.filter(i => !(result.substitutions || []).some(s => s.from === i) && !JSON.parse(payload).candidates[i].coastal).map(i=>{
         const missed = JSON.parse(payload).candidates[i];
-        const alternatives = places.filter(p=>p.name!==missed.name && !selected.some(s=>s.name===p.name) &&
-          (!missed.meal || p.meal) && !candidates.some(s=>s.name===p.name));
-        if (!alternatives.length) return null;
-        return <label key={i} className="field">{missed.name} 대신 방문할 곳
-          <select value="" onChange={e=>{if(e.target.value) replaceStop(missed.name,e.target.value);}}>
-            <option value="">대체 장소 선택</option>
-            {alternatives.map(p=><option key={p.name}>{p.name}</option>)}
-          </select>
-        </label>;
+        const pool = places.filter(p=>p.name!==missed.name && !selected.some(s=>s.name===p.name) &&
+          (!missed.meal || p.meal) && !candidates.some(s=>s.name===p.name) &&
+          !(applied.closed && SEASIDE.test(p.name + " " + p.detail)));
+        if (!pool.length) return null;
+        const { tag, same, other } = rankAlternatives(missed, pool);
+        return <div key={i} className="plan-fix is-swap">
+          <p><b>{missed.name}</b>은(는) 이번 일정에 넣지 못했어요. 원하는 활동(<b>{TAG_LABELS[tag]}</b>)을 지키려면 같은 종류로 바꿔 보세요.</p>
+          <div className="plan-fix-actions">
+            {same[0] && <button type="button" className="fix-primary" onClick={() => replaceStop(missed.name, same[0].name)}>추천 · {same[0].name}로 바꾸기 <small>{TAG_LABELS[tag]} 유지</small></button>}
+            <label className="fix-select"><span className="sr-only">{missed.name} 대신 방문할 곳</span>
+              <select value="" onChange={e=>{if(e.target.value) replaceStop(missed.name,e.target.value);}}>
+                <option value="">다른 장소 고르기</option>
+                {same.length > 0 && <optgroup label={`같은 활동 유지 · ${TAG_LABELS[tag]}`}>{same.map(p=><option key={p.name} value={p.name}>{p.name}</option>)}</optgroup>}
+                {other.length > 0 && <optgroup label="활동이 바뀌어요">{other.map(p=><option key={p.name} value={p.name}>{p.name} · {TAG_LABELS[p.tag]}</option>)}</optgroup>}
+              </select>
+            </label>
+          </div>
+        </div>;
       })}
       {(result.missing_meals > 0 || result.skipped.length > 0) && <button type="button" onClick={onAlternate}>다른 식당·장소 선택하기</button>}
       {!!result.missing_meals && <p role="status">배치하지 못한 식사: {result.missing_meals} · 식사 시간, 식당 또는 여행 시간을 조정해 주세요.</p>}
-      {!!result.skipped.length && <p>일정에 넣지 못한 장소: {result.skipped.map(i=>JSON.parse(payload).candidates[i].name).join(", ")} · 시간·식사 횟수·운영시간 조건을 확인해 주세요.</p>}
+      {(() => { const left = result.skipped.filter(i => !(result.substitutions || []).some(s => s.from === i));
+        return left.length > 0 && !left.every(i => JSON.parse(payload).candidates[i].coastal && applied.closed) && <p>일정에 넣지 못한 장소: {left.map(i=>JSON.parse(payload).candidates[i].name).join(", ")} · 시간·식사 횟수·운영시간 조건을 확인해 주세요.</p>; })()}
     </div>}
     </div>
     <aside className="course-side">

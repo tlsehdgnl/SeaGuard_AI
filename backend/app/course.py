@@ -19,6 +19,8 @@ class Stop(BaseModel):
     point: tuple[float, float] | None = None
     meal: bool = False
     coastal: bool = False
+    # Backup restaurant: used only when a chosen restaurant is closed or does not fit.
+    backup: bool = False
     duration: int = Field(default=40, ge=10, le=240)
     windows: list[tuple[int, int]] | None = Field(default=None, max_length=4)
 
@@ -134,7 +136,8 @@ def schedule(course, priority):
                     transfer, _ = travel(reserved, stop.point)
                     if end + transfer > sea_start:
                         continue
-                options.append((begin + rank * 2 - (5 if stop.required else 0), i, begin, end, minutes, km))
+                # Backups lose to any chosen/regular stop that fits; they only fill a gap.
+                options.append((begin + rank * 2 - (5 if stop.required else 0) + (1000 if stop.backup else 0), i, begin, end, minutes, km))
                 break
         if not options:
             if meals:
@@ -149,8 +152,13 @@ def schedule(course, priority):
             meals.pop(0)
         now, point = end, stop.point
         remaining.remove(i)
+    used_backups = [row["id"] for row in timeline if course.candidates[row["id"]].backup]
+    lost_meals = [i for i in remaining if course.candidates[i].meal and not course.candidates[i].backup]
+    # Pair each chosen restaurant that could not be placed with the backup that took its meal.
+    substitutions = [{"from": a, "to": b} for a, b in zip(lost_meals, used_backups)]
     return {"order":[row["id"] for row in timeline], "timeline":timeline,
-            "skipped":remaining, "missing_meals":missed_meals + len(meals)}
+            "skipped":[i for i in remaining if not course.candidates[i].backup],
+            "missing_meals":missed_meals + len(meals), "substitutions":substitutions}
 
 
 class Message(BaseModel):
@@ -226,7 +234,9 @@ async def generate(course, messages=None, current_order=None):
     optional = [i for i,s in enumerate(course.candidates) if not s.required]
     visits = required + optional[:course.extras]
     # Include enough available restaurant choices to satisfy requested meals.
-    visits += [i for i in optional if course.candidates[i].meal and i not in visits][:len(course.meal_times)]
+    visits += [i for i in optional if course.candidates[i].meal and not course.candidates[i].backup and i not in visits][:len(course.meal_times)]
+    # Backup restaurants always travel with the plan so a closed restaurant never leaves a meal empty.
+    visits += [i for i in optional if course.candidates[i].backup and i not in visits]
     sea_info, slots = await prepare_coast(course)
     payload = course.model_dump(mode="json")
     payload["coastal_forecast"] = sea_info

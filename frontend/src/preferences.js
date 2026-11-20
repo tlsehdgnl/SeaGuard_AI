@@ -1,6 +1,6 @@
 import { BEACHES } from "./beaches.js";
 
-import { shops } from "./nearby.js";
+import { shops, activities } from "./nearby.js";
 export const PLACE_NAMES = {
   balhan: "발한도서관",
   buksam: "북삼도서관",
@@ -9,7 +9,8 @@ export const PLACE_NAMES = {
   cave: "천곡황금박쥐동굴",
   forest: "동해무릉건강숲 실내 체험",
 };
-const shopNames = new Set([...Object.values(PLACE_NAMES), ...Object.values(shops).flat().map(([name]) => name)]);
+const shopNames = new Set([...Object.values(PLACE_NAMES), ...Object.values(shops).flat().map(([name]) => name),
+  ...Object.values(activities).flat().map(([name]) => name)]);
 
 export const ACTIVITY_LABELS = {
   walk: "산책", swim: "물놀이", photo: "풍경 사진",

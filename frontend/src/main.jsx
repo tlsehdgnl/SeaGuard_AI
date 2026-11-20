@@ -8,6 +8,7 @@ import { CoursePlanner, tripDate } from "./CoursePlanner.jsx";
 import { WeatherArt } from "./WeatherArt.jsx";
 import { MapLink, PhoneLink, OutLink } from "./MapLink.jsx";
 import { ActivityArt } from "./ActivityArt.jsx";
+import { DayPicker } from "./DayPicker.jsx";
 import { FishingPanel } from "./FishingPanel.jsx";
 import { weatherSummary } from "./weatherSummary.js";
 import { BEACHES, destinationName } from "./beaches.js";
@@ -204,20 +205,31 @@ function LibraryPrograms() {
       controller.abort();
     };
   }, [attempt]);
-  return <section className="programs"><h3>도서관 행사·강좌 일정</h3>
+  const statusClass = (status) => {
+    const s = String(status || "").replace(/\s/g, "");
+    return s.includes("종료") || s.includes("마감") ? "st-closed" : s.includes("예정") ? "st-soon" : "st-open";
+  };
+  return <section className="programs">
+    <div className="programs-head">
+      <h3 className="indoor-h"><span aria-hidden="true">📚</span> 도서관 행사·강좌</h3>
+      {data?.open_count != null && !error && <span className="programs-count">지금 접수 중 <b>{data.open_count}</b>건</span>}
+    </div>
     {language === "en" && <p className="hint">Official program titles are shown in their original Korean.</p>}
-    <p className="hint">목록을 보는 동안 1시간마다 자동 갱신합니다.</p>
     {error && <p role="status">{error} {data && "마지막으로 확인한 일정을 표시합니다."}</p>}
     {!data && !error && <p role="status">공식 일정을 확인하고 있어요…</p>}
     {data && <>
-      <p className="hint">접수중·대기접수·접수예정 목록과 최근 공지를 함께 확인합니다. 기간 중 실제 수업일과 신청 가능 여부는 상세 안내를 확인하세요. 마지막 확인 {formatTime(data.checked_at, language)}</p>
-      {data.open_count != null && !error && <p><strong>접수 중 {data.open_count}건</strong></p>}
       {data.missing?.length > 0 && <p role="status">{data.missing.join(" · ")} 목록을 확인하지 못했습니다. 공식 사이트에서 확인해 주세요.</p>}
-      {data.items.length ? <ul>{data.items.map(item => <li key={item.url+item.title}>
-        <a lang={language === "en" ? "ko" : undefined} href={item.url} target="_blank" rel="noreferrer">{item.title} ↗</a>
-        <p>{item.branch} · {item.place} · {item.period} {item.hours}</p>
-        <small>접수 {item.registration || "원문 확인"} · <span className={item.status.replace(/\s/g, "") === "접수종료" ? "registration-closed" : undefined}>{item.status}</span> {item.is_open && item.days_left != null && <strong>{item.days_left === 0 ? "D-day" : `D-${item.days_left}`}</strong>}</small>
+      {data.items.length ? <ul>{data.items.map(item => <li key={item.url+item.title} className={statusClass(item.status)}>
+        <div className="pg-top">
+          <span className={"pg-status " + statusClass(item.status)}>{item.status}</span>
+          {item.is_open && item.days_left != null && <span className="pg-dday">{item.days_left === 0 ? "D-day" : `D-${item.days_left}`}</span>}
+        </div>
+        <a lang={language === "en" ? "ko" : undefined} href={item.url} target="_blank" rel="noreferrer">{item.title}</a>
+        <p>📍 {item.branch} · {item.place}</p>
+        <p>🗓 {item.period} {item.hours}</p>
+        <small>접수 {item.registration || "원문 확인"}</small>
       </li>)}</ul> : <p>{data.missing?.length ? "확인된 목록에 표시할 강좌가 없습니다." : "조회한 목록에 기간이 남은 강좌가 없습니다."}</p>}
+      <p className="hint">동해시립도서관 공식 목록 · 마지막 확인 {formatTime(data.checked_at, language)} · 보는 동안 1시간마다 자동 갱신 · 실제 수업일과 신청 가능 여부는 상세 안내에서 확인하세요.</p>
     </>}
     <div className="toolbar"><OutLink href="https://www.donghaelib.go.kr/web/menu/10027/program/30010/lectureList.do">전체 일정·신청</OutLink>
     {(data || error) && <button onClick={() => setAttempt(n => n+1)}>일정 새로 조회</button>}</div>
@@ -925,21 +937,17 @@ function App() {
             )}
         </>}
         {step===3 && <>
-        <label className="field">방문일 기준 장소 찾기<input type="date" min={tripDate(0)} max={tripDate(6)} value={visitDate} onChange={e=>{if(e.target.value>=tripDate(0) && e.target.value<=tripDate(6)) setVisitDate(e.target.value);}}/></label>
+        <DayPicker value={visitDate} onChange={setVisitDate} label="방문일 기준 장소 찾기" hint="고른 날의 휴관일을 빼고 보여드려요" />
         <section id="local-activities" aria-label="지역 활동 추천">
           <Outdoor key={profile.beach} profile={profile} weather={weather} onToggle={toggleStop} />
         </section>
         {data && (
           <>
-            <section className="alternatives card options"><h2>실내 활동</h2>
-              <LibraryPrograms />
-              <h3>방문할 만한 시설</h3>
-              <p className="sub">
-                확인된 조건의 후보와 추가 확인이 필요한 후보를 나누어
-                보여드려요.
-                <br />
-                {data.alternatives.notice}
-              </p>
+            <section className="alternatives card options indoor"><h2>실내 활동</h2>
+              <p className="indoor-lead">비가 오거나 바다가 거칠 때 갈 만한 곳이에요. <b>＋</b>를 누르면 여행 동선에 담겨요.</p>
+              <div className="indoor-block">
+              <h3 className="indoor-h"><span aria-hidden="true">🏛️</span> 방문할 만한 시설</h3>
+              <h4 className="group-h is-ready">바로 검토할 수 있어요 <span>{data.alternatives.candidates.length}</span></h4>
               {data.alternatives.candidates.length ? (
                 <div className="place-grid">
                   {data.alternatives.candidates.map((p) => (
@@ -958,7 +966,7 @@ function App() {
               )}
               {data.alternatives.needs_check.length > 0 && (
                 <>
-                  <h3>먼저 확인하면 검토할 수 있어요</h3>
+                  <h4 className="group-h is-check">먼저 확인하면 갈 수 있어요 <span>{data.alternatives.needs_check.length}</span></h4>
                   <div className="place-grid">
                     {data.alternatives.needs_check.map((p) => (
                       <Place key={p.id} place={p} onFeedback={giveFeedback} selected={profile.stops.includes(p.name)} onToggle={toggleStop} />
@@ -993,9 +1001,12 @@ function App() {
                 </button>
               )}
               <p className="hint">
-                자료 확인일 {data.alternatives.checked_at} · 현장 실사나 실시간
-                영업 확인일이 아닙니다.
+                {data.alternatives.notice} 자료 확인일 {data.alternatives.checked_at}.
               </p>
+              </div>
+              <div className="indoor-block library-block">
+                <LibraryPrograms />
+              </div>
               <details className="feedback-history">
                 <summary>이 브라우저의 추천 의견 ({feedback.length})</summary>
                 <p>
