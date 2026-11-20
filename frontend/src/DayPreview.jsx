@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 
 const SCENE_MS = 1400;
 
-export default function DayPreview({ beach, stops }) {
+export default function DayPreview({ beach, stops, onPreview }) {
   const [index, setIndex] = useState(null);
   const [paused, setPaused] = useState(false);
   const stop = stops[index];
@@ -24,7 +24,7 @@ export default function DayPreview({ beach, stops }) {
     </figure>}
     <button type="button" onClick={() => {
       if (stop) setPaused(!paused);
-      else { setPaused(false); setIndex(0); }
+      else { onPreview(); setPaused(false); setIndex(0); }
     }}>{stop ? (paused ? '계속 보기' : '잠시 멈춤') : '▷ 하루 미리보기'}</button>
     {stop && <button type="button" onClick={() => setIndex(null)}>미리보기 닫기</button>}
   </section>;

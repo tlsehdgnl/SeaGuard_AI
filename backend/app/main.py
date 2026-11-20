@@ -10,8 +10,11 @@ import httpx
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+from .analytics import router as analytics_router
+
 app = FastAPI(title="SeaGuard AI", version="1.0.0")
-app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(","), allow_methods=["GET"], allow_headers=["*"])
+app.include_router(analytics_router)
+app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(","), allow_methods=["GET","POST"], allow_headers=["*"])
 BEACHES = [
     {"id": "mangsang", "name": "망상", "latitude": 37.593, "longitude": 129.09, "description": "넓은 백사장과 탁 트인 동해"},
     {"id": "chuam", "name": "추암", "latitude": 37.478, "longitude": 129.16, "description": "촛대바위 곁의 작은 해변"},

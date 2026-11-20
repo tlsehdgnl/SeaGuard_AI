@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './style.css';
+import Admin from './Admin';
+import { track } from './analytics';
 import DayPreview from './DayPreview';
 import courses from './previewCourses.json';
 
@@ -189,6 +191,7 @@ function App() {
     <header className="site-header">
       <div className="shell header-inner">
         <a className="brand" href="/" aria-label="SeaGuard AI 처음으로"><span className="brand-mark"><Icon name="wave" size={22}/></span><span>SeaGuard AI</span></a>
+        <a className="header-link" href="/admin">관리자 통계</a>
         <a className="header-link" href="#official">공식 정보 확인 <Icon name="chevron" size={14}/></a>
       </div>
     </header>
@@ -211,11 +214,11 @@ function App() {
         </div>
       </section>
       <div className="disclaimer"><Icon name="alert" size={17}/><p>해변 인근 격자 예보이며 공식 경보나 입수 허가가 아닙니다. <strong>현장 안내와 통제를 우선하세요.</strong></p></div>
-      <DayPreview key={beach} beach={selected.name} stops={courses[beach]}/>
+      <DayPreview key={beach} beach={selected.name} stops={courses[beach]} onPreview={() => track("plan_seen", beach, "", true)}/>
       <Details data={data}/>
     </main>
     <footer className="site-footer"><div className="shell footer-inner"><span>SeaGuard AI <span aria-hidden="true">·</span> 동해 해변 방문 안내</span><a href="#guide">데이터와 안내 기준</a></div></footer>
   </>;
 }
 
-createRoot(document.getElementById('root')).render(<App/>);
+createRoot(document.getElementById('root')).render(['/admin','/admin/'].includes(location.pathname) ? <Admin/> : <App/>);

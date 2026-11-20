@@ -126,3 +126,8 @@ cd backend
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+
+### LJH 관리자 통계
+웹 상단의 관리자 통계 또는 `/admin`에서 접속합니다. 로컬 백엔드를 실행할 때 `ADMIN_TOKEN` 환경 변수를 설정하세요. 개발 환경은 SQLite를 사용하며, 기존 운영 통계를 보려면 백엔드 환경에 HYUNDO Master 연결 주소와 `SEAGUARD_PRIVATE_SCHEMA=1`을 설정합니다. 관리자 키와 DB 주소는 Git에 올리지 않습니다.
+
+`frontend/src/Admin.jsx`는 인증과 필터, `CityStats.jsx`는 차트와 CSV, `backend/app/analytics.py`는 익명 이벤트 저장과 관리자 집계 API를 담당합니다. LJH 해변 가이드에서 예시 코스 미리보기를 열면 시연 일정 조회로 기록합니다. 출발 시간·차량 여부 등은 해당 정보를 수집한 일정에서만 집계합니다.
