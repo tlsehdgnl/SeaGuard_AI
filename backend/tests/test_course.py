@@ -65,3 +65,17 @@ class OpenAIConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(client.post.call_args.args[0],'https://api.openai.com/v1/chat/completions')
         self.assertEqual(client.post.call_args.kwargs['headers']['Authorization'],'Bearer test-not-real')
         ai._cache.clear(); ai._calls.clear()
+
+
+class AstraRequestTests(unittest.TestCase):
+    def test_astra_body_has_no_temperature(self):
+        import os
+        from app import ai
+        with patch.dict(os.environ, {'LLM_REASONING_EFFORT': '', 'LLM_MAX_TOKENS': ''}):
+            body = ai.request_body(ai.DEFAULT_MODEL, 'Return JSON', {'x': 1})
+        self.assertEqual(ai.DEFAULT_MODEL, 'gpt-6-astra')
+        self.assertNotIn('temperature', body)
+        self.assertEqual(body['reasoning_effort'], 'low')
+        self.assertEqual(body['response_format'], {'type': 'json_object'})
+        with patch.dict(os.environ, {'LLM_REASONING_EFFORT': 'off'}):
+            self.assertNotIn('reasoning_effort', ai.request_body('other', 'i', {}))

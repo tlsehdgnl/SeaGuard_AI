@@ -6,7 +6,7 @@ from urllib.parse import quote
 
 from .ai import select_json
 
-CATALOG = json.loads((Path(__file__).parent / "data" / "places.json").read_text())
+CATALOG = json.loads((Path(__file__).parent / "data" / "places.json").read_text(encoding="utf-8"))
 KST = timezone(timedelta(hours=9))
 OFFICIAL_LINKS = [
     {"id": "weather", "title": "기상청 특보 확인", "url": "https://www.weather.go.kr/w/special-report/overall.do", "description": "동해시·동해 앞바다의 발표 시각과 적용 구역을 확인하세요."},

@@ -2,10 +2,18 @@
 import asyncio
 import math
 import os
+import sys
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 from typing import Literal
 
 import httpx
+from dotenv import load_dotenv
+
+# Local runs read backend/.env (Vercel uses its own env vars; existing values win).
+# Skipped under unittest so tests never spend a real key.
+if "unittest" not in sys.modules:
+    load_dotenv(Path(__file__).resolve().parents[1] / ".env", override=False)
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 

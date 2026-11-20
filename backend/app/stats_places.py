@@ -153,4 +153,4 @@ PLACES = {
 # SDH's curated destinations and shops; never accept arbitrary event labels.
 import json
 from pathlib import Path
-PLACES.update(json.loads((Path(__file__).parent / "data" / "analytics_places.json").read_text()))
+PLACES.update(json.loads((Path(__file__).parent / "data" / "analytics_places.json").read_text(encoding="utf-8")))
