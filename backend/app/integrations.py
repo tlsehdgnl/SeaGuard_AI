@@ -12,6 +12,7 @@ from pathlib import Path
 import httpx
 from fastapi import APIRouter, Header, HTTPException, Response
 from pydantic import BaseModel
+from . import kakao
 from .ai import OPENAI_URL, DEFAULT_MODEL, request_body
 from .fishing import API_URL, extract_items
 from .programs import LIST, parse_programs
@@ -62,6 +63,35 @@ async def gpt(client, deep):
     if r.is_error:return item('gpt',name,failure_status(r),'auth_failed',http_status=r.status_code,model=model)
     available={m['id'] for m in r.json()['data']}
     return item('gpt',name,'ok' if model in available else 'error','model_access_ok' if model in available else 'model_missing',model=model)
+
+
+async def kakao_login_config():
+    required = ('KAKAO_REST_API_KEY', 'KAKAO_REDIRECT_URI', 'KAKAO_RETURN_URL',
+                'SUPABASE_URL', 'SUPABASE_SECRET_KEY')
+    if not all(os.getenv(name) for name in required):
+        return item('kakao_login', '카카오 로그인', 'missing', 'kakao_config_missing', False)
+    return_url = os.environ['KAKAO_RETURN_URL'].rstrip('/')
+    callback = os.environ['KAKAO_REDIRECT_URI']
+    if callback != return_url + '/api/kakao/callback' or (os.getenv('VERCEL') and not return_url.startswith('https://')):
+        return item('kakao_login', '카카오 로그인', 'warning', 'kakao_callback_invalid')
+    return item('kakao_login', '카카오 로그인', 'configured', 'kakao_login_configured')
+
+
+async def kakao_places(client):
+    key = kakao.local_key()
+    if not key:
+        return item('kakao_local', '카카오 장소 검색', 'missing', 'key_missing', False)
+    response = await client.get((os.getenv('KAKAO_LOCAL_URL') or kakao.LOCAL) + 'keyword.json',
+                                params={'query': '동해역', 'size': 1},
+                                headers={'Authorization': 'KakaoAK ' + key})
+    if response.status_code != 200:
+        return item('kakao_local', '카카오 장소 검색', failure_status(response),
+                    'provider_rejected', http_status=response.status_code)
+    documents = response.json()['documents']
+    if not isinstance(documents, list):
+        raise ValueError('Invalid place search response')
+    return item('kakao_local', '카카오 장소 검색', 'ok' if documents else 'warning',
+                'data_received' if documents else 'no_data')
 
 
 async def fishing(client):
@@ -142,13 +172,15 @@ async def guarded(id,name,operation):
 async def check_integrations(body:CheckRequest,response:Response,authorization:str=Header(default='')):
     require_admin(authorization)
     response.headers['Cache-Control']='no-store'
-    names=('OPENAI_API_KEY','OPENAI_MODEL','LLM_API_KEY','LLM_API_URL','LLM_MODEL','FISHING_API_KEY','TRAIL_DATABASE_URL','TRAIL_DB_PATH','VERCEL','SEAGUARD_PRIVATE_SCHEMA','SUPABASE_URL','SUPABASE_SECRET_KEY')
+    names=('KAKAO_REST_API_KEY','KAKAO_REDIRECT_URI','KAKAO_RETURN_URL','KAKAO_LOCAL_KEY','KAKAO_LOCAL_URL','OPENAI_API_KEY','OPENAI_MODEL','LLM_API_KEY','LLM_API_URL','LLM_MODEL','FISHING_API_KEY','TRAIL_DATABASE_URL','TRAIL_DB_PATH','VERCEL','SEAGUARD_PRIVATE_SCHEMA','SUPABASE_URL','SUPABASE_SECRET_KEY')
     fingerprint=hashlib.sha256(json.dumps([os.getenv(k) for k in names]+[body.test_generation]).encode()).hexdigest()
     async with _lock:
         cached=_cache.get(fingerprint)
         if cached and time.monotonic()-cached[0]<30:return {**cached[1],'cached':True}
         async with httpx.AsyncClient(timeout=12) as client:
             rows=await asyncio.gather(
+                guarded('kakao_login','카카오 로그인',kakao_login_config),
+                guarded('kakao_local','카카오 장소 검색',lambda:kakao_places(client)),
                 guarded('gpt','GPT',lambda:gpt(client,body.test_generation)),
                 guarded('fishing','국립해양조사원 낚시 API',lambda:fishing(client)),
                 guarded('weather','Open-Meteo 기상 예보',lambda:forecast(client)),

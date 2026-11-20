@@ -21,7 +21,7 @@ class IntegrationTests(unittest.TestCase):
         with patch.object(checks,'gpt',good),patch.object(checks,'fishing',good),patch.object(checks,'forecast',good),patch.object(checks,'library',good):
             r=self.client.post('/api/admin/integrations/check',json={},headers={'Authorization':'Bearer private-admin'})
         self.assertEqual(r.status_code,200);self.assertEqual(r.headers['cache-control'],'no-store')
-        data=r.json();self.assertEqual(len(data['services']),8)
+        data=r.json();self.assertEqual(len(data['services']),10)
         db=next(x for x in data['services'] if x['id']=='database')
         self.assertEqual(db['status'],'missing')
         for secret in ('private-admin','private-openai','private-fishing'):self.assertNotIn(secret,r.text)
@@ -33,6 +33,14 @@ class IntegrationTests(unittest.TestCase):
         self.assertFalse(a.json()['cached']);self.assertTrue(b.json()['cached']);self.assertEqual(probe.await_count,5)
 
 class ProbeTests(unittest.IsolatedAsyncioTestCase):
+    async def test_kakao_auth_error_hides_credentials_and_provider_body(self):
+        client = AsyncMock()
+        client.get.return_value = httpx.Response(403, text='private provider response')
+        with patch.dict(os.environ, {'KAKAO_LOCAL_KEY': 'private-key'}):
+            row = await checks.kakao_places(client)
+        self.assertEqual(row['status'], 'auth_error')
+        self.assertNotIn('private', str(row))
+
     async def test_invalid_key_is_not_reported_as_connected(self):
         client=AsyncMock();client.get.return_value=httpx.Response(401,json={'error':{'message':'secret should never escape'}})
         with patch.dict(os.environ,{'OPENAI_API_KEY':'secret','OPENAI_MODEL':'model'}):r=await checks.gpt(client,False)

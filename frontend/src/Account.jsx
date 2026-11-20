@@ -1,3 +1,4 @@
+import { kakaoConfig } from './kakao.js';
 import React, {createContext,useContext,useEffect,useRef,useState,useCallback} from 'react';
 import {useLanguage,LanguageSwitch} from './i18n.js';
 import './account.css';
@@ -26,7 +27,7 @@ export function AccountProvider({children}) {
   useEffect(()=>{if(user)refreshPlans();},[user,refreshPlans]);
   useEffect(()=>{const sync=()=>{if(document.visibilityState==='visible'&&owner.current)refreshPlans();};document.addEventListener('visibilitychange',sync);return()=>document.removeEventListener('visibilitychange',sync);},[refreshPlans]);
   async function authenticate(kind,body){const data=await accountRequest('/'+kind,body);accept(data.user);setReady(true);return data.user;}
-  async function logout(){await accountRequest('/logout',{});accept(null);setPlansLoading(false);}
+  async function logout(){await accountRequest('/logout',{});kakaoConfig(true);accept(null);setPlansLoading(false);}
   async function saveCloud(profiles){await accountRequest('/plans',{profiles,expected_user_id:owner.current});await refreshPlans();}
   async function deleteCloud(id){await accountRequest('/plans/'+encodeURIComponent(id)+'?owner='+encodeURIComponent(owner.current),undefined,'DELETE');await refreshPlans();}
   return <Context.Provider value={{user,ready,error,cloudPlans,plansError,plansLoading,refreshPlans,authenticate,logout,saveCloud,deleteCloud}}>{children}</Context.Provider>;

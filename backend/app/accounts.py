@@ -185,6 +185,9 @@ async def logout(request:Request,response:Response):
         if error.status_code != 401:
             raise
     clear_cookies(response)
+    for name in ('depart_kakao', 'depart_kakao_state'):
+        response.delete_cookie(name, path='/api/kakao', httponly=True,
+                               secure=bool(os.getenv('VERCEL')), samesite='lax')
     return {'ok':True}
 
 

@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useLanguage } from './i18n.js';
 
-const statuses={ok:['연결 정상','Connected'],missing:['설정 없음','Not configured'],auth_error:['인증 실패','Authentication failed'],rate_limited:['사용 한도 확인','Check usage limits'],error:['연결 오류','Connection error'],warning:['추가 확인','Needs attention'],timeout:['응답 지연','Timed out'],unchecked:['검사 필요','Not tested']};
+const statuses={configured:['설정 확인','Configuration checked'],ok:['연결 정상','Connected'],missing:['설정 없음','Not configured'],auth_error:['인증 실패','Authentication failed'],rate_limited:['사용 한도 확인','Check usage limits'],error:['연결 오류','Connection error'],warning:['추가 확인','Needs attention'],timeout:['응답 지연','Timed out'],unchecked:['검사 필요','Not tested']};
 const details={
+ kakao_config_missing:['seaguard-api의 카카오 로그인 및 Supabase 환경변수를 확인하세요.','Check Kakao Login and Supabase variables in seaguard-api.'],
+ kakao_callback_invalid:['사이트 주소와 카카오 로그인 복귀 주소가 일치하는지 확인하세요.','Check that the callback URL matches the site URL.'],
+ kakao_login_configured:['서버 설정을 확인했습니다. 카카오 콘솔 등록과 계정 동의는 실제 로그인으로 확인하세요.','Server settings checked. Sign in to verify Kakao console registration and account consent.'],
  key_missing:['서버 환경변수에 키를 등록한 뒤 재시작 또는 재배포하세요.','Set the server environment variable, then restart or redeploy.'],
  endpoint_invalid:['LLM_API_URL의 HTTPS 주소를 확인하세요.','Check the HTTPS URL in LLM_API_URL.'],
  generation_failed:['모델명, API 사용 한도와 결제 상태를 확인하세요.','Check the model, API limits and billing status.'],
@@ -25,8 +28,8 @@ const details={
  check_failed:['응답 형식 또는 연결을 확인하지 못했습니다. 서버 설정과 제공기관 상태를 확인하세요.','Could not verify the connection or response format. Check server settings and provider availability.'],
  admin_authenticated:['현재 입력한 관리자 키 인증에 성공했습니다.','The administrator key you entered was authenticated.']
 };
-const vars={gpt:'OPENAI_API_KEY · OPENAI_MODEL / LLM_API_KEY · LLM_API_URL',fishing:'FISHING_API_KEY',supabase:'SUPABASE_URL · SUPABASE_SECRET_KEY',database:'TRAIL_DATABASE_URL / SUPABASE_URL · SUPABASE_SECRET_KEY',admin:'ADMIN_TOKEN'};
-const englishNames={admin:'Admin authentication',gpt:'GPT provider',fishing:'KHOA fishing API',weather:'Open-Meteo weather',marine:'Open-Meteo marine',library:'Donghae library schedules',supabase:'Supabase accounts & places',database:'Statistics database'};
+const vars={kakao_login:'KAKAO_REST_API_KEY · KAKAO_REDIRECT_URI · KAKAO_RETURN_URL · SUPABASE_URL · SUPABASE_SECRET_KEY',kakao_local:'KAKAO_LOCAL_KEY / KAKAO_REST_API_KEY',gpt:'OPENAI_API_KEY · OPENAI_MODEL / LLM_API_KEY · LLM_API_URL',fishing:'FISHING_API_KEY',supabase:'SUPABASE_URL · SUPABASE_SECRET_KEY',database:'TRAIL_DATABASE_URL / SUPABASE_URL · SUPABASE_SECRET_KEY',admin:'ADMIN_TOKEN'};
+const englishNames={kakao_login:'Kakao Login',kakao_local:'Kakao Local search',admin:'Admin authentication',gpt:'GPT provider',fishing:'KHOA fishing API',weather:'Open-Meteo weather',marine:'Open-Meteo marine',library:'Donghae library schedules',supabase:'Supabase accounts & places',database:'Statistics database'};
 export default function IntegrationDashboard({token,onUnauthorized}) {
  const {language}=useLanguage();const en=language==='en';const t=(ko,english)=>en?english:ko;
  const [report,setReport]=useState(null);const [loading,setLoading]=useState(false);const [error,setError]=useState('');const [deep,setDeep]=useState(false);const [request,setRequest]=useState({number:0,deep:false});

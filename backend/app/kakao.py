@@ -68,6 +68,7 @@ def login():
         "state": state, "scope": "profile_nickname,talk_message",
     })
     response = RedirectResponse(url, status_code=302)
+    accounts.no_cache(response)
     response.set_cookie(STATE, state, max_age=600, httponly=True, secure=secure(), samesite="lax", path="/api/kakao")
     return response
 
