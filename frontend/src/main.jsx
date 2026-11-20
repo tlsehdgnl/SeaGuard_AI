@@ -665,7 +665,7 @@ function App() {
         <div className="step-head">
           <div className="step-meta"><span>여행 준비 · {step+1} / {STEPS.length}</span><button onClick={()=>{if(step>0)go(step-1);else{history.replaceState(null,"");setStarted(false);setEntering(false);entryTimer.current=null;}}}>← 뒤로가기</button></div>
           <h1 ref={flowHeading} tabIndex={-1}>{["어느 해변이나 항구에 가시나요?", "무엇을 하고 싶으세요?", beachName+" 방문 브리핑", beachName+" 주변에서 할 일", "이 계획을 다시 볼까요?"][step]}</h1>
-          <JourneyGuide key={step} step={step} destination={beachName} activities={activityNames} mode={profile.mode}/>
+          <JourneyGuide key={step} step={step} beach={profile.beach} destination={beachName} activities={activityNames} mode={profile.mode}/>
           {step>0 && <p>{beachName} · {activityNames}{profile.children?" · 어린이 동반":""} · {profile.mode==="demo"?"예시 데이터":"모델 예보"}</p>}
         </div>
         {step===0 && <>

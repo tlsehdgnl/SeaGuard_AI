@@ -3,6 +3,7 @@ import L from "leaflet";
 import { useLanguage, translate } from "./i18n.js";
 import "leaflet/dist/leaflet.css";
 import coordinates from "./routeCoordinates.json";
+import { setChatContext } from "./chatContext.js";
 import { KAKAO_JS_KEY, TRAFFIC_COLORS, TRAFFIC_LABELS, km, loadKakaoMaps, minutes, useKakaoConfig, useLiveRoute } from "./kakao.js";
 
 const entrancePoints = new Set(["망상시계탑", "망상해변 송림", "한섬감성바닷길"]);
@@ -16,6 +17,20 @@ export function CourseMap({ stops }) {
   const [focus, setFocus] = useState(null);  // selected leg index, or null for the whole route
   const routeKey = JSON.stringify(route?.legs || null);
   useEffect(() => setFocus(null), [routeKey]);
+  // Hand the live route to 무암이's chat: per-leg time, distance and traffic mix (share of road points).
+  useEffect(() => {
+    if (!route) { setChatContext("route", null); return; }
+    const legs = route.legs.map((leg, i) => {
+      const mix = {};
+      for (const s of route.segments.filter(s => s.leg === i)) mix[s.level] = (mix[s.level] || 0) + s.path.length;
+      const total = Object.values(mix).reduce((a, b) => a + b, 0) || 1;
+      return { from: pins[i]?.name, to: pins[i + 1]?.name, minutes: minutes(leg.duration), km: Number(km(leg.distance)),
+        traffic_share: Object.fromEntries(Object.entries(mix).map(([k, v]) => [k, Math.round(100 * v / total) + "%"])) };
+    }).filter(l => l.to);
+    setChatContext("route", { checked_at_kst: new Date(route.checked_at * 1000).toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Seoul" }),
+      total_minutes: minutes(route.duration), total_km: Number(km(route.distance)), source: "카카오모빌리티 실시간 교통", legs });
+    return () => setChatContext("route", null);
+  }, [routeKey]);  // eslint-disable-line react-hooks/exhaustive-deps
   const titled = pins.map((p) => ({ ...p, title: p.number + ". " + translate(p.name + (entrancePoints.has(p.name) ? " (입구 기준)" : ""), language) }));
   return <>
     {KAKAO_JS_KEY && !kakaoFailed

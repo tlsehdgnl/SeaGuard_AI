@@ -30,7 +30,7 @@ const GUIDES = [
   ]},
 ];
 
-export function JourneyGuide({step, destination, activities, mode}) {
+export function JourneyGuide({step, beach, destination, activities, mode}) {
   const {language} = useLanguage();
   const en = language === 'en';
   const guide = GUIDES[step];
@@ -123,7 +123,7 @@ export function JourneyGuide({step, destination, activities, mode}) {
         {en ? 'View tutorial' : '사용 안내 보기'}
       </button>
     </div>
-    <GuideChat open={chatOpen} onClose={() => setChatOpen(false)} {...{guide, step, language, destination, activities, mode}}/>
+    <GuideChat open={chatOpen} onClose={() => setChatOpen(false)} {...{guide, step, language, beach, destination, activities, mode}}/>
     {open && createPortal(<div className="guide-overlay">
       <div ref={spotlight} className="guide-spotlight" hidden aria-hidden="true" />
       <section ref={panel} className="guide-panel" role="dialog" aria-modal="true" aria-labelledby="guide-title" aria-describedby="guide-body" tabIndex={-1} onKeyDown={keys}>

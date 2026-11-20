@@ -55,3 +55,14 @@ body:has(.guide-overlay) .journey-app::after {content:"";display:block;height:10
 }
 .guide-panel .guide-chat-button:hover {background:#104e51;}
 .guide-chat-avatar {width:48px;height:60px;object-fit:contain;}
+
+/* Guide chat: multi-line answers and tappable example questions */
+.trip-chat-dialog .trip-chat-bubble p { white-space: pre-line; word-break: keep-all; overflow-wrap: anywhere; }
+.guide-chat-examples { display: flex; flex-wrap: wrap; gap: 8px; margin: 2px 0 6px; padding-left: 4px; }
+.guide-chat-examples button {
+  min-height: 36px; padding: 0 14px; border: 1px solid rgb(15 143 154 / .3); border-radius: 999px;
+  background: #eef8f8; color: #1d5f68; font: inherit; font-size: 13px; font-weight: 600; cursor: pointer;
+  word-break: keep-all; transition: background-color .2s, transform .2s;
+}
+.guide-chat-examples button:hover { background: #dff1f1; transform: translateY(-1px); }
+.guide-chat-examples button:focus-visible { outline: 3px solid #36888b; outline-offset: 2px; }
