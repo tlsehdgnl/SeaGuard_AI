@@ -39,7 +39,7 @@ export function AccountPage(){
   const field=(key)=>({value:form[key],onChange:e=>setForm({...form,[key]:e.target.value})});
   async function submit(e){e.preventDefault();setBusy(true);setError('');try{await account.authenticate(signup?'signup':'login',signup?form:{username:form.username,password:form.password});window.location.assign('/?mypage=1');}catch(err){setError(en?'Unable to sign in or register. Check your details or try again later.':err.message);}finally{setBusy(false);}}
   return <main className="account-page"><div className="account-nav"><a href="/">← {en?'Continue as guest':'로그인 없이 이용하기'}</a><LanguageSwitch/></div>
-    <a href="/" className="account-brand"><img src="/departner-mark.svg" alt=""/>DePartner</a>
+    <a href="/?home" className="account-brand"><img src="/departner-mark.svg" alt=""/>DePartner</a>
     <section className="account-card"><p className="account-eyebrow">YOUR DONGHAE COMPANION</p><h1>{signup?(en?'Join DePartner':'여행 기록을 함께 모아요'):(en?'Welcome back':'다시 만나 반가워요')}</h1>
       <p>{en?'Use every travel feature without an account. Sign in to access saved plans on your other devices.':'로그인 없이도 여행 기능을 이용할 수 있어요. 로그인하면 여러 기기에서 저장한 계획을 모아 볼 수 있어요.'}</p>
       {account.user ? <><p>{account.user.nickname}{en?', you are signed in.':'님, 로그인되어 있어요.'}</p><a className="account-primary" href="/?mypage=1">{en?'Open my plans':'마이페이지 열기'}</a></> : <>

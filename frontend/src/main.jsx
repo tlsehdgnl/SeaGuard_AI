@@ -642,7 +642,7 @@ function App() {
         본문으로 이동
       </a>
       <header>
-        <a className="brand" href="/">
+        <a className="brand" href="/?home">
           <img src="/departner-mark.svg" alt="" className="departner-mark"/>
           <span>
             <b>D</b>ePartner
@@ -1261,5 +1261,9 @@ function Place({ place, onFeedback, selected, onToggle }) {
       </details>
     </article>
   );
+}
+// A logo click explicitly selects the landing screen, even with a journey draft in this tab.
+if (location.pathname === "/" && new URLSearchParams(location.search).has("home")) {
+  history.replaceState({journey: false, step: 0}, "", "/");
 }
 createRoot(document.getElementById("root")).render(<LanguageProvider><AccountProvider><KakaoToast/>{["/admin", "/admin/"].includes(location.pathname) ? <Admin /> : ["/login", "/login/"].includes(location.pathname) ? <AccountPage/> : <App />}</AccountProvider></LanguageProvider>);

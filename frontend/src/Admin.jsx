@@ -38,7 +38,7 @@ export default function Admin() {
 
   return <main className="adminView">
     <div className="admin-nav"><a className="admin-back" href="/">← 뒤로가기</a><LanguageSwitch/></div>
-    <a href="/" className="adminBrand"><img src="/favicon.svg" alt=""/>DePartner</a>
+    <a href="/?home" className="adminBrand"><img src="/favicon.svg" alt=""/>DePartner</a>
     <h1>동해시 관광 운영 통계</h1>
     {!key ? <form className="adminPanel" onSubmit={e => {e.preventDefault(); setTab("stats"); setKey(input.trim()); setInput("");}}>
       <label>관리자 접속키<input type="password" required autoComplete="current-password" value={input} onChange={e => setInput(e.target.value)}/></label>
