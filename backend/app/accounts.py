@@ -188,7 +188,17 @@ async def logout(request:Request,response:Response):
     return {'ok':True}
 
 
+class CatalogStop(BaseModel):
+    id: str = Field(max_length=120)
+    name: str = Field(max_length=100)
+    kind: str = Field(max_length=40)
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
+
+
 class PlanProfile(BaseModel):
+    visit_date: date | None = None
+    catalog: list[CatalogStop] = Field(default_factory=list, max_length=60)
     beach: str = Field(max_length=40)
     activity: list[str] = Field(min_length=1,max_length=12)
     children: bool = False
@@ -235,7 +245,9 @@ async def save_plans(body:SavePlans,request:Request,response:Response):
         raise HTTPException(409,'로그인 계정이 바뀌었어요. 새로고침 후 다시 저장해 주세요.')
     rows=[]
     for profile in body.profiles:
-        data=profile.model_dump()
+        data=profile.model_dump(mode="json",exclude_none=True)
+        if not data["catalog"]:
+            del data["catalog"]  # Preserve the digest of previously saved plans.
         digest=json.dumps(data,sort_keys=True,ensure_ascii=False,separators=(',',':'))
         rows.append({'id':str(uuid5(NAMESPACE_URL,user['id']+digest)),'user_id':user['id'],'profile':data,'updated_at':datetime.now(timezone.utc).isoformat()})
     rows=list({r['id']:r for r in rows}.values())

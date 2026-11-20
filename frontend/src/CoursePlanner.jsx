@@ -7,11 +7,16 @@ import coordinates from "./routeCoordinates.json";
 import React, { useState, useEffect, useRef } from "react";
 import { activities, beachRegion, regions, shops, shopCategory } from "./nearby.js";
 
-export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, activityNames, conditions, forecastText }) {
+export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, activityNames, conditions, forecastText, visitDate, setVisitDate, onAlternate, replaceStop }) {
   const { language } = useLanguage();
-  const [settings, setSettings] = useState({date:tripDate(1), closed:false, start:"10:00", end:"18:00", meals:profile.time_budget === "any" || Number(profile.time_budget) >= 180 ? ["12:00"] : [], hours:{}});
+  const settingsKey = "departner.course." + profile.beach + "." + profile.time_budget + "." + location.hash;
+  const [saved] = useState(() => {
+    try { return JSON.parse(sessionStorage.getItem(settingsKey)); } catch { return null; }
+  });
+  const [settings, setSettings] = useState(saved?.settings || { closed:false, start:"10:00", end:"18:00", meals:profile.time_budget === "any" || Number(profile.time_budget) >= 180 ? ["12:00"] : [], hours:{}});
   const generation = useRef(0);
-  const [applied, setApplied] = useState(settings);
+  const [applied, setApplied] = useState(saved?.applied || settings);
+  useEffect(()=>{try {sessionStorage.setItem(settingsKey,JSON.stringify({settings,applied}));} catch {}},[settingsKey,settings,applied]);
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
   const [chatOpen, setChatOpen] = useState(false);
@@ -30,7 +35,7 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
   useEffect(() => {
     if (chatOpen) chatBottom.current?.scrollIntoView({block:"nearest"});
   }, [messages, sending, chatError, chatOpen]);
-  const [result, setResult] = useState(null);
+  const [responseData, setResult] = useState(null);
   const [attempt, retry] = useState(0);
   const [error, setError] = useState("");
   const region = beachRegion[profile.beach];
@@ -40,12 +45,19 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
   })));
   places.push(...indoorPlaces.map(place => ({name:place.name, detail:[place.address,...place.checks].join(" · ").slice(0,190), required:true})));
   const selected = profile.stops.map(name => places.find(place => place.name === name)).filter(Boolean);
+  for (const place of profile.catalog || []) {
+    if (selected.some(stop => stop.name === place.name)) continue;
+    required.add(place.name);
+    selected.push({name:place.name, detail:"동해 장소 자료", required:true, meal:place.kind === "food",
+      point:Number.isFinite(place.latitude) && Number.isFinite(place.longitude) ? [place.latitude, place.longitude] : undefined});
+  }
   const wishes = profile.activity;
   const wanted = [];
   for (const [activity, category] of [["food", "식당"], ["cafe", "카페·간식"]]) {
     if (!wishes.includes(activity) && !(activity === "food" && applied.meals.length)) continue;
     const rows = shops[region].filter(([,kind]) => shopCategory(kind) === category);
-    wanted.push(...rows.filter(([name]) => !required.has(name)).slice(0, activity === "food" ? applied.meals.length : 1));
+    const count = activity === "food" ? Math.max(0, applied.meals.length - selected.filter(s=>s.meal).length) : 1;
+    wanted.push(...rows.filter(([name]) => !required.has(name)).slice(0, count));
   }
   const optional = (profile.budget === "free" ? [] : wanted)
     .map(([name,kind,address]) => ({ name, detail: kind+" · "+address, meal:shopCategory(kind) === "식당" }));
@@ -56,13 +68,14 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
   const candidates = [{name:start, detail:"바다 조망 · 현장 통제와 공식 특보 확인 후 방문", required:true, coastal:true}, ...selected, ...optional.filter(place => !required.has(place.name))];
   const minutes = profile.time_budget === "any" ? Infinity : Number(profile.time_budget);
   const payload = candidates.length && !loading ? JSON.stringify({
-    beach_id:profile.beach, visit_date:applied.date, mode:profile.mode, coastal_closed:applied.closed,
+    beach_id:profile.beach, visit_date:visitDate, mode:profile.mode, coastal_closed:applied.closed,
     start, activities: activityNames, conditions, weather: forecastText, origin: coordinates[start],
-    candidates: candidates.map(stop => ({ ...stop, point: coordinates[stop.name], duration:stop.meal ? 60 : 40, windows:parseHours(applied.hours[stop.name]) })),
+    candidates: candidates.map(stop => ({ ...stop, point: stop.point || coordinates[stop.name], duration:stop.meal ? 60 : minutes <= 30 && stop.coastal ? 15 : 40, windows:parseHours(applied.hours[stop.name]) })),
     start_minute:toMinutes(applied.start), end_minute:Math.min(toMinutes(applied.end), toMinutes(applied.start)+(Number.isFinite(minutes) ? minutes : 1440)),
     meal_times:applied.meals.map(toMinutes), transport:profile.transport === "car" ? "car" : profile.transport === "transit" ? "transit" : "walk", language,
     extras: Math.min(optional.length, Math.max(0, Math.floor(minutes / 30) - selected.length)),
   }) : "";
+  const result = responseData?.payload === payload ? responseData : null;
   useEffect(() => {
     generation.current += 1;
     setSending(false);
@@ -80,7 +93,7 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
         });
         if (!res.ok) throw Error();
         const response = await res.json();
-        if (!controller.signal.aborted) setResult({...response, stops:response.order.map(i => places[i])});
+        if (!controller.signal.aborted) setResult({...response, payload, stops:response.order.map(i => places[i])});
       } catch {
         if (!controller.signal.aborted) setError("코스를 불러오지 못했어요.");
       }
@@ -103,7 +116,7 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
       if (version !== generation.current) return;
       if (!res.ok) throw Error(data.detail === "disabled" ? "disabled" : data.detail === "limited" ? "limited" : "failed");
       const places = JSON.parse(payload).candidates;
-      setResult({...data, stops:data.order.map(i=>places[i])});
+      setResult({...data, payload, stops:data.order.map(i=>places[i])});
       setMessages([...next,{role:"assistant",content:data.reply}]); setMessage("");
     } catch (err) {
       if (version !== generation.current) return;
@@ -125,7 +138,7 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
     <div className="course-title"><h3>바다와 함께하는 하루</h3><p>이동 계산 기준 지역 · {start}</p></div>
     <form className="course-settings" onSubmit={apply}>
       <fieldset disabled={sending}><legend>바다 시간에 맞추는 일정</legend>
-        <label>방문 날짜<input type="date" min={tripDate(0)} max={tripDate(6)} required value={settings.date} onChange={e=>setSettings({...settings,date:e.target.value})}/></label>
+        <label>방문 날짜<input type="date" min={tripDate(0)} max={tripDate(6)} required value={visitDate} onChange={e=>{if(e.target.value>=tripDate(0) && e.target.value<=tripDate(6)) setVisitDate(e.target.value);}}/></label>
         <label>출발 시간<input type="time" required value={settings.start} onChange={e=>setSettings({...settings,start:e.target.value})}/></label>
         <label>종료 시간<input type="time" required value={settings.end} onChange={e=>setSettings({...settings,end:e.target.value})}/></label>
         <label>식사 횟수<select value={settings.meals.length} onChange={e=>setSettings({...settings,meals:["12:00","17:00","10:00"].slice(0,Number(e.target.value))})}>{[0,1,2,3].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
@@ -138,7 +151,7 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
         <button type="submit">조건 적용 · 코스 다시 만들기</button>
       </fieldset>
     </form>
-    {!!selected.length && <p>동선에 담은 곳 · {profile.stops.join(" → ")}</p>}
+    {!!selected.length && <p>동선에 담은 곳 · {selected.map(s=>s.name).join(" → ")}</p>}
     {(!result && !error && (loading || payload)) && <p role="status">방문 순서를 정하고 있어요…</p>}
     {!loading && !candidates.length && <p>주변 활동에서 들르고 싶은 곳을 동선에 추가해 주세요.</p>}
     {error && <p role="alert">{error} <button onClick={() => retry(n => n+1)}>다시 조회</button></p>}
@@ -152,10 +165,24 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
           <div className="tl-head"><strong>{stop.name}</strong><span className="tl-kind">{row.coastal ? "바다 조망" : row.meal ? "식사" : "방문"}</span>
             <MapLink href={"https://map.naver.com/p/search/"+encodeURIComponent("동해시 "+stop.name)} name={stop.name} /></div>
           <p>{stop.detail}</p><p className="tl-meta">예상 이동 {row.travel_minutes} min · {row.distance_km === null ? "좌표 미확인" : `${row.distance_km} km`} · {row.coastal ? "시간별 예보 반영 · 현장 확인 필요" : row.hours_known ? "입력한 운영시간 반영" : "운영시간 확인 필요"}</p>
-          <ShelterFinder key={stop.name} name={stop.name} compact />
+          <ShelterFinder key={stop.name} name={stop.name} placePoint={stop.point} compact />
           <StopSafety key={payload+JSON.stringify(row)} row={row} profile={profile} language={language} />
         </div>
       </li>})}</ol>
+      {!result.timeline.length && minutes <= 30 && <p role="status">짧은 조망은 15분이며 이동시간도 필요해요. 방문 시간을 바꾸거나 가까운 장소를 선택해 주세요.</p>}
+      {result.skipped.map(i=>{
+        const missed = JSON.parse(payload).candidates[i];
+        const alternatives = places.filter(p=>p.name!==missed.name && !selected.some(s=>s.name===p.name) &&
+          (!missed.meal || p.meal) && !candidates.some(s=>s.name===p.name));
+        if (!alternatives.length) return null;
+        return <label key={i} className="field">{missed.name} 대신 방문할 곳
+          <select value="" onChange={e=>{if(e.target.value) replaceStop(missed.name,e.target.value);}}>
+            <option value="">대체 장소 선택</option>
+            {alternatives.map(p=><option key={p.name}>{p.name}</option>)}
+          </select>
+        </label>;
+      })}
+      {(result.missing_meals > 0 || result.skipped.length > 0) && <button type="button" onClick={onAlternate}>다른 식당·장소 선택하기</button>}
       {!!result.missing_meals && <p role="status">배치하지 못한 식사: {result.missing_meals} · 식사 시간, 식당 또는 여행 시간을 조정해 주세요.</p>}
       {!!result.skipped.length && <p>일정에 넣지 못한 장소: {result.skipped.map(i=>JSON.parse(payload).candidates[i].name).join(", ")} · 시간·식사 횟수·운영시간 조건을 확인해 주세요.</p>}
     </div>}
@@ -167,19 +194,19 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
           <small>{result ? "동선·식사 시간을 AI와 함께 다듬어요" : "코스를 만드는 중이에요…"}</small></span>
         <span className="chat-cta-arrow" aria-hidden="true">→</span>
       </button>
-      {!!result?.stops.length && <div className="course-map-card"><CourseMap names={result.stops.map(stop => stop.name)} />
+      {!!result?.stops.length && <div className="course-map-card"><CourseMap stops={result.stops} />
         <p className="hint">이동시간과 영업 여부는 각 장소의 지도에서 확인하세요.</p></div>}
     </aside>
     {chatOpen && <dialog ref={chatDialog} className="trip-chat-dialog" aria-labelledby="trip-chat-title" onCancel={()=>setChatOpen(false)} onClick={e=>{if(e.target===e.currentTarget)setChatOpen(false);}}>
       <div className="trip-chat-shell">
         <header className="trip-chat-header">
-          <span className="trip-chat-avatar" aria-hidden="true">≈</span>
+          <img className="trip-chat-avatar" src="/departner-mark.svg" alt=""/>
           <div><p className="trip-chat-eyebrow">DEPARTNER</p><h2 id="trip-chat-title">나의 여행 메이트</h2><p>현재 계획을 함께 다듬어요</p></div>
           <button type="button" className="trip-chat-close" aria-label="대화창 닫기" onClick={()=>setChatOpen(false)}>×</button>
         </header>
         <div className="trip-chat-context"><span>함께 보는 여행 계획</span><strong>{start}</strong><small>{applied.start} – {applied.end} · 식사 {applied.meals.length}<span>회</span></small></div>
         <div className="trip-chat-messages" role="log" aria-label="여행 대화" aria-live="polite">
-          <div className="trip-chat-row assistant"><span className="trip-chat-avatar" aria-hidden="true">≈</span><div className="trip-chat-bubble"><strong>DePartner</strong><p>어떤 여행을 원하시나요? 지금 계획을 바탕으로 이동 동선과 방문 순서를 함께 다듬어 드릴게요.</p></div></div>
+          <div className="trip-chat-row assistant"><img className="trip-chat-avatar" src="/departner-mark.svg" alt=""/><div className="trip-chat-bubble"><strong>DePartner</strong><p>어떤 여행을 원하시나요? 지금 계획을 바탕으로 이동 동선과 방문 순서를 함께 다듬어 드릴게요.</p></div></div>
           {!messages.length && <div className="trip-chat-prompts">{["이동 거리를 줄이고 싶어요", "이 코스의 식사 시간을 검토해 줘", "아이와 함께 가기 좋은 동선일까?"].map(text=><button type="button" key={text} disabled={sending} onClick={()=>setMessage(language === "en" ? ({"이동 거리를 줄이고 싶어요":"I'd like to reduce travel distance.","이 코스의 식사 시간을 검토해 줘":"Please review the meal times in this itinerary.","아이와 함께 가기 좋은 동선일까?":"Is this route suitable for a trip with children?"}[text]) : text)}>{text} ↗</button>)}</div>}
           {messages.map((m,i)=><div key={i} className={"trip-chat-row "+m.role}><div className="trip-chat-bubble"><strong>{m.role === "user" ? "대화 사용자" : "DePartner"}</strong><p>{m.content}</p></div></div>)}
           {sending && <><div className="trip-chat-row user"><div className="trip-chat-bubble"><strong>대화 사용자</strong><p>{message}</p></div></div><div className="trip-chat-row assistant"><div className="trip-chat-bubble trip-chat-pending" role="status">답변을 기다리고 있어요…</div></div></>}
@@ -210,7 +237,7 @@ function parseHours(value) {
   if(intervals.length>4) throw Error("hours"); return intervals;
 }
 
-function tripDate(offset) {
+export function tripDate(offset) {
   const now=new Date(); now.setDate(now.getDate()+offset);
   return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit'}).format(now);
 }
@@ -221,7 +248,7 @@ function SeaPlan({plan,language}) {
     <p className="sea-plan-eyebrow">DEPARTNER · SEA TIME</p>
     <h3>{language==='en'?en[plan.status]:status[plan.status]}</h3>
     <p>{plan.date} · {plan.is_demo ? "시연용 가상 예보" : "시간별 모델 예보"}</p>
-    {plan.selected && <><strong className="sea-plan-time">{clock(plan.selected.minute)} – {clock(plan.selected.minute+40)}</strong><p>파고 {plan.selected.wave} m · 바람 {plan.selected.wind} m/s · 강수 {plan.selected.rain} mm/h</p><p>선택한 식사·방문 장소와 이동시간을 고려해, 예보가 상대적으로 잔잔한 시간에 바다 조망을 배치했어요.</p></>}
+    {plan.selected && <><strong className="sea-plan-time">{clock(plan.selected.arrival ?? plan.selected.minute)} – {clock(plan.selected.departure ?? plan.selected.minute+40)}</strong><p>파고 {plan.selected.wave} m · 바람 {plan.selected.wind} m/s · 강수 {plan.selected.rain} mm/h</p><p>선택한 식사·방문 장소와 이동시간을 고려해, 예보가 상대적으로 잔잔한 시간에 바다 조망을 배치했어요.</p></>}
     {!plan.selected && <p>바다 방문을 제외하고 선택한 가게와 실내 활동을 배치했어요. 방문 날짜나 시간을 바꾸거나 공식 정보를 확인해 주세요.</p>}
     {!!plan.alternatives?.length && <p>다른 방문 후보 시간 · {plan.alternatives.map(p=>clock(p.minute)).join(' / ')}</p>}
     <div className="sea-plan-hours" aria-label="시간별 바다 예보">{plan.points?.filter(p=>p.minute>=360&&p.minute<=1140).map(p=><div key={p.minute} className={p.minute===plan.selected?.minute?'chosen':''}><strong>{clock(p.minute)}</strong><span>{p.wave} m</span><span>{p.wind} m/s</span></div>)}</div>

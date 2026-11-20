@@ -4,7 +4,7 @@ import { AccountProvider, AccountPage, useAccount } from "./Account.jsx";
 import { JourneyGuide } from "./JourneyGuide.jsx";
 import { MyPage } from "./MyPage.jsx";
 import { listPlans, savePlan, PLAN_PREFIX } from "./savedPlans.js";
-import { CoursePlanner } from "./CoursePlanner.jsx";
+import { CoursePlanner, tripDate } from "./CoursePlanner.jsx";
 import { WeatherArt } from "./WeatherArt.jsx";
 import { MapLink, PhoneLink, OutLink } from "./MapLink.jsx";
 import { ActivityArt } from "./ActivityArt.jsx";
@@ -94,7 +94,7 @@ async function request(path, signal) {
     );
   return data;
 }
-function Outdoor({ profile, weather, onStopsChange }) {
+function Outdoor({ profile, weather, onToggle }) {
   const {language} = useLanguage();
   const region = beachRegion[profile.beach];
   const beach = destinationName(profile.beach);
@@ -142,7 +142,7 @@ function Outdoor({ profile, weather, onStopsChange }) {
       const selected = profile.stops.includes(name);
       return <li key={name} data-place-name={name} className={"route-card" + (selected ? " is-selected" : "")}>
         <button type="button" className="route-toggle" aria-pressed={selected}
-          onClick={() => onStopsChange(selected ? profile.stops.filter(stop => stop !== name) : [...profile.stops, name])}>
+          onClick={() => onToggle(name)}>
           {name}</button>
         <p>{area && area+" 권역 · "}{kind} · {address}</p>
         <MapLink href={map(name)} name={name} />
@@ -224,7 +224,7 @@ function LibraryPrograms() {
   </section>;
 }
 
-function PlanSummary({ indoorPlaces, profile, beachName, activityNames, weather, loading }) {
+function PlanSummary({ indoorPlaces, profile, beachName, activityNames, weather, loading, visitDate, setVisitDate, onAlternate, replaceStop }) {
   const conditions = [
     profile.children && "어린이 동반",
     { stroller: "유모차 동반", step_free: "계단 없는 이동" }[profile.mobility],
@@ -240,7 +240,7 @@ function PlanSummary({ indoorPlaces, profile, beachName, activityNames, weather,
     <h2>{beachName} 방문 계획</h2>
     <dl>{[["하고 싶은 활동", activityNames], ["동행·이동 조건", conditions], ["바닷가 날씨", forecastText]].map(([label, value]) =>
       <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
-    <CoursePlanner indoorPlaces={indoorPlaces} loading={loading} key={JSON.stringify([profile,forecastText])} profile={profile} start={beachName}
+    <CoursePlanner indoorPlaces={indoorPlaces} loading={loading} visitDate={visitDate} setVisitDate={setVisitDate} onAlternate={onAlternate} replaceStop={replaceStop} key={profile.beach+profile.time_budget} profile={profile} start={beachName}
       weather={weather} conditions={conditions} activityNames={activityNames} forecastText={forecastText} />
   </section>;
 }
@@ -283,7 +283,25 @@ function Outlook({beach, mode}) {
   </section>;
 }
 const STEPS = ["방문지 선택", "활동 선택", "바다 브리핑", "주변 활동", "저장·공유"];
+function validVisitDate(value) {
+  return value >= tripDate(0) && value <= tripDate(6) ? value : tripDate(1);
+}
+
 function App() {
+  const [draft] = useState(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem("departner.journey"));
+      return saved?.url === location.href ? saved : null;
+    } catch { return null; }
+  });
+  const [toast, setToast] = useState("");
+  const toastTimer = useRef();
+  function notifyAdded(name) {
+    clearTimeout(toastTimer.current);
+    setToast(name + " · 일정에 담았어요");
+    toastTimer.current = setTimeout(() => setToast(""), 2200);
+  }
+  useEffect(() => () => clearTimeout(toastTimer.current), []);
   const account = useAccount();
   const {language} = useLanguage();
   const [entering, setEntering] = useState(false);
@@ -296,11 +314,18 @@ function App() {
     setEntering(true);
     entryTimer.current = setTimeout(() => {setStarted(true); setEntering(false); go(0);}, reduced ? 0 : 950);
   }
-  const [started, setStarted] = useState(() => new URLSearchParams(location.hash.slice(1)).has("beach") || new URLSearchParams(location.search).has("mypage"));
+  const [started, setStarted] = useState(() => (history.state?.journey ?? draft?.started) || new URLSearchParams(location.hash.slice(1)).has("beach") || new URLSearchParams(location.search).has("mypage"));
   const trackedPlan = useRef("");
-  const [step, setStep] = useState(() => new URLSearchParams(location.hash.slice(1)).has("beach") ? 2 : 0);
+  const [step, setStep] = useState(() => history.state?.step ?? draft?.step ?? (new URLSearchParams(location.hash.slice(1)).has("beach") ? 2 : 0));
   const flowHeading = useRef(null);
   function go(next) {
+    if (history.state?.journey && next < step && history.state.previousStep === next) {
+      history.back();
+      return;
+    }
+    if (!history.state?.journey || history.state.step !== next) {
+      history.pushState({journey:true, step:next, previousStep:history.state?.step}, "");
+    }
     // Animated step change (View Transitions API); plain update when unsupported or reduced motion.
     if (document.startViewTransition && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
       document.documentElement.dataset.nav = next < step ? "back" : "forward";
@@ -326,12 +351,26 @@ function App() {
     window.addEventListener("storage", sync);
     return () => window.removeEventListener("storage", sync);
   }, []);
-  const [profile, setProfile] = useState(() =>
-    initialProfile(
-      window.location.hash,
-      plans[0]?.profile,
-    ),
-  );
+  const [profile, setProfile] = useState(() => {
+    const initial = draft?.profile ? sanitizeProfile(draft.profile) : initialProfile(location.hash, plans[0]?.profile);
+    return {...initial, visit_date:validVisitDate(initial.visit_date || draft?.visitDate)};
+  });
+  const visitDate = validVisitDate(profile.visit_date);
+  function setVisitDate(value) {setProfile(p=>({...p, visit_date:value}));}
+  useEffect(() => {
+    try { sessionStorage.setItem("departner.journey", JSON.stringify({url:location.href, started, step, profile, visitDate})); } catch {}
+  }, [started, step, profile, visitDate]);
+  useEffect(() => {
+    const restore = e => {
+      setStarted(!!e.state?.journey || !!location.hash);
+      setStep(e.state?.step ?? (location.hash ? 2 : 0));
+      setMyPage(false);
+      entryTimer.current = null;
+      window.scrollTo(0,0);
+    };
+    window.addEventListener("popstate",restore);
+    return () => window.removeEventListener("popstate",restore);
+  }, []);
   const [excluded, setExcluded] = useState([]);
   const [result, setResult] = useState(null),
     [error, setError] = useState(""),
@@ -359,6 +398,8 @@ function App() {
   const shareButton = useRef(null);
   const params = profileParams(profile);
   params.delete("stops");
+  params.delete("catalog");
+  params.set("visit_date",visitDate);
   params.set("exclude", excluded.join(","));
   const requestKey = params.toString();
   const data =
@@ -506,7 +547,7 @@ function App() {
   }
   function openSaved(p) {
     window.history.replaceState(null, "", shareUrl(window.location.href, p));
-    setProfile(p);
+    setProfile({...p,visit_date:validVisitDate(p.visit_date)});
     setExcluded([]);
     setRefresh(n => n+1);
     setMyPage(false);
@@ -514,6 +555,7 @@ function App() {
     go(4);
   }
   function toggleStop(name) {
+    if (!profile.stops.includes(name)) notifyAdded(name);
     setProfile(prev => ({ ...prev, stops: prev.stops.includes(name)
       ? prev.stops.filter(stop => stop !== name) : [...prev.stops, name] }));
   }
@@ -600,7 +642,7 @@ function App() {
       <main id="content">
         {myPage ? <MyPage plans={account.user ? account.cloudPlans : plans} localPlans={plans} onOpen={openSaved} onDelete={deleteSaved} onBack={() => showMyPage(false)} headingRef={flowHeading} message={message} /> : <>
         <div className="step-head">
-          <div className="step-meta"><span>여행 준비 · {step+1} / {STEPS.length}</span><button onClick={()=>{if(step>0)go(step-1);else{setStarted(false);setEntering(false);entryTimer.current=null;}}}>← 뒤로가기</button></div>
+          <div className="step-meta"><span>여행 준비 · {step+1} / {STEPS.length}</span><button onClick={()=>{if(step>0)go(step-1);else{history.replaceState(null,"");setStarted(false);setEntering(false);entryTimer.current=null;}}}>← 뒤로가기</button></div>
           <h1 ref={flowHeading} tabIndex={-1}>{["어느 해변이나 항구에 가시나요?", "무엇을 하고 싶으세요?", beachName+" 방문 브리핑", beachName+" 주변에서 할 일", "이 계획을 다시 볼까요?"][step]}</h1>
           <JourneyGuide key={step} step={step} destination={beachName} activities={activityNames} mode={profile.mode}/>
           {step>0 && <p>{beachName} · {activityNames}{profile.children?" · 어린이 동반":""} · {profile.mode==="demo"?"예시 데이터":"모델 예보"}</p>}
@@ -694,6 +736,7 @@ function App() {
               onChange={(v) => change("time_budget", v)}
               options={TIME_OPTIONS}
             />
+            {profile.time_budget === "30" && <p className="hint">30분 코스는 이동과 15분 바다 조망을 기준으로 찾아요. 식사에는 60분이 필요해요.</p>}
           </div>
         </section>
         )}
@@ -717,7 +760,6 @@ function App() {
               ]}
             />
         </div>
-        <ShelterFinder key={beachName} name={beachName} />
         {error ? (
           <section className="error" role="alert">
             <h2>정보 확인 필요</h2>
@@ -853,6 +895,7 @@ function App() {
             ))}
           </div>
         </section>
+        <ShelterFinder key={beachName} name={beachName} />
             {weather && (
               <details className="provenance card"><summary>데이터의 출처와 시각</summary>
                 <dl>
@@ -882,8 +925,9 @@ function App() {
             )}
         </>}
         {step===3 && <>
+        <label className="field">방문일 기준 장소 찾기<input type="date" min={tripDate(0)} max={tripDate(6)} value={visitDate} onChange={e=>{if(e.target.value>=tripDate(0) && e.target.value<=tripDate(6)) setVisitDate(e.target.value);}}/></label>
         <section id="local-activities" aria-label="지역 활동 추천">
-          <Outdoor key={profile.beach} profile={profile} weather={weather} onStopsChange={stops => setProfile(prev => ({...prev, stops}))} />
+          <Outdoor key={profile.beach} profile={profile} weather={weather} onToggle={toggleStop} />
         </section>
         {data && (
           <>
@@ -983,11 +1027,23 @@ function App() {
             </section>
           </>
         )}
-        <CatalogBrowser/>
+
+        <CatalogBrowser selected={profile.catalog || []} onToggle={place=>{
+          const id = String(place.id);
+          const list = profile.catalog || [];
+          const exists = list.some(item=>item.id===id);
+          if (!exists) notifyAdded(place.name);
+          const {name, kind, latitude, longitude} = place;
+          change("catalog", exists ? list.filter(item=>item.id!==id) : [...list,{id,name,kind,latitude,longitude}]);
+        }}/>
+        <div role="status" className={toast ? "trip-toast" : undefined}>{toast}</div>
         {!data && <p role="status">{error || "지역 활동을 확인하고 있어요…"}</p>}
         </>}
         {step===4 && <>
-        <PlanSummary indoorPlaces={indoorPlaces} profile={{...profile, stops: usableStops}} beachName={beachName} activityNames={activityNames}
+        <PlanSummary replaceStop={(oldName,newName)=>setProfile(p=>({...p,
+            stops:[...new Set([...p.stops.filter(n=>n!==oldName),newName])],
+            catalog:(p.catalog || []).filter(c=>c.name!==oldName)
+          }))} visitDate={visitDate} setVisitDate={setVisitDate} onAlternate={()=>go(3)} indoorPlaces={indoorPlaces} profile={{...profile, stops: usableStops}} beachName={beachName} activityNames={activityNames}
           weather={weather} loading={!error && !data} />
         <section id="save-plan" className="card plan"><h2>조건 저장 · 공유</h2>
           <div className="toolbar">

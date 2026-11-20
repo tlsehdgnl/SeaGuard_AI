@@ -99,7 +99,8 @@ def schedule(course, priority):
     remaining = list(dict.fromkeys(priority))
     now, point = course.start_minute, course.origin
     meals = sorted(course.meal_times)
-    timeline, skipped = [], []
+    missed_meals = 0
+    timeline = []
     def travel(stop, from_point=None):
         source = point if from_point is None else from_point
         if not source or not stop.point:
@@ -136,6 +137,10 @@ def schedule(course, priority):
                 options.append((begin + rank * 2 - (5 if stop.required else 0), i, begin, end, minutes, km))
                 break
         if not options:
+            if meals:
+                meals.pop(0)
+                missed_meals += 1
+                continue
             break
         _, i, begin, end, minutes, km = min(options)
         stop = course.candidates[i]
@@ -145,7 +150,7 @@ def schedule(course, priority):
         now, point = end, stop.point
         remaining.remove(i)
     return {"order":[row["id"] for row in timeline], "timeline":timeline,
-            "skipped":remaining, "missing_meals":len(meals)}
+            "skipped":remaining, "missing_meals":missed_meals + len(meals)}
 
 
 class Message(BaseModel):
@@ -189,7 +194,7 @@ def schedule_with_coast(course, ordered, info, slots):
     for slot in slots:
         candidate=course.model_copy(deep=True)
         for i in indices:
-            candidate.candidates[i].windows=[(slot['minute'],slot['minute']+candidate.candidates[i].duration)]
+            candidate.candidates[i].windows=[(slot['minute'],slot['minute']+60)]
         result=schedule(candidate,ordered)
         if not all(i in result['order'] for i in indices): continue
         missed=sum(course.candidates[i].required for i in result['skipped'])
@@ -199,7 +204,8 @@ def schedule_with_coast(course, ordered, info, slots):
     if trials:
         trials.sort(key=lambda x:x[0])
         _,answer,chosen=trials[0]
-        info.update(status='scheduled',selected=chosen,alternatives=[t[2] for t in trials[1:4]])
+        sea_row = next(row for row in answer['timeline'] if row['coastal'])
+        info.update(status='scheduled',selected={**chosen, 'arrival':sea_row['arrival'], 'departure':sea_row['departure']},alternatives=[t[2] for t in trials[1:4]])
     else:
         candidate=course.model_copy(deep=True)
         for i in indices: candidate.candidates[i].windows=[]
@@ -210,6 +216,12 @@ def schedule_with_coast(course, ordered, info, slots):
 
 
 async def generate(course, messages=None, current_order=None):
+    if course.visit_date:
+        from .guide import CATALOG
+        closed = {p["name"] for p in CATALOG["places"] if course.visit_date.weekday() in p["closed_weekdays"]}
+        for stop in course.candidates:
+            if stop.name in closed:
+                stop.windows = []
     required = [i for i,s in enumerate(course.candidates) if s.required]
     optional = [i for i,s in enumerate(course.candidates) if not s.required]
     visits = required + optional[:course.extras]

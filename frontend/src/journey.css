@@ -113,8 +113,8 @@ html[lang='en'] .journey-app #plan .tabs[aria-label] button {overflow-wrap:anywh
 .trip-chat-header h2 { font-size:23px; margin:3px 0 5px; color:white; }
 .trip-chat-header p { margin:0; font-size:13px; color:#d7e5ed; }
 .trip-chat-header .trip-chat-eyebrow { font-size:10px; letter-spacing:2px; }
-.trip-chat-avatar { display:grid; place-items:center; flex-shrink:0; width:39px; height:39px; border-radius:14px; background:#deebef; color:#285468; font-size:29px; }
-.trip-chat-header .trip-chat-avatar { width:47px; height:47px; background:#ffffff18; color:white; border:1px solid #ffffff35; }
+.trip-chat-avatar { display:block; flex-shrink:0; width:39px; height:39px; object-fit:contain; }
+.trip-chat-header .trip-chat-avatar { width:47px; height:47px; }
 .trip-chat-dialog button { cursor:pointer; font:inherit; transition:background .18s,transform .18s; }
 .trip-chat-dialog button:disabled { opacity:.5; cursor:default; }
 .trip-chat-dialog .trip-chat-close { margin-left:auto; align-self:flex-start; background:#ffffff15; color:white; border:0; border-radius:50%; width:36px; height:36px; font-size:26px; padding:0; }
@@ -179,3 +179,5 @@ html[lang='en'] .journey-app #plan .tabs[aria-label] button {overflow-wrap:anywh
 .course-settings .coastal-closure { flex-direction:row; align-items:center; flex-basis:100%; font-size:13px; }
 .course-settings .coastal-closure input { width:18px; height:18px; flex-shrink:0; }
 @media(max-width:600px) { .sea-plan { padding:18px; } .sea-plan-time { font-size:30px; } .landing-brand { font-size:23px; } }
+
+.trip-toast {position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:1000;width:max-content;max-width:90vw;border-radius:14px;background:#163e48;color:white;padding:12px 18px;box-shadow:0 5px 20px #142c3933;pointer-events:none;}

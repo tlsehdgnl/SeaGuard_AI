@@ -6,18 +6,19 @@ import coordinates from "./routeCoordinates.json";
 
 const entrancePoints = new Set(["망상시계탑", "망상해변 송림", "한섬감성바닷길"]);
 
-export function CourseMap({ names }) {
+export function CourseMap({ stops }) {
   const {language} = useLanguage();
   const container = useRef(null);
-  const key = JSON.stringify(names);
+  const key = JSON.stringify(stops.map((s,i)=>({name:s.name,point:s.point || coordinates[s.name],number:i+1})).filter(s=>s.point));
   useEffect(() => {
     const stops = JSON.parse(key);
+    if (!stops.length) return;
     const map = L.map(container.current, { scrollWheelZoom: false });
     L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
       maxZoom: 19,
     }).addTo(map);
-    const points = stops.map(name => coordinates[name]);
+    const points = stops.map(s => s.point);
     L.polyline(points, {color:"#185d59", dashArray:"6 6"}).addTo(map);
     map.fitBounds(L.latLngBounds(points), {padding:[32,32], maxZoom:16});
     const labels = L.layerGroup().addTo(map);
@@ -25,7 +26,7 @@ export function CourseMap({ names }) {
       labels.clearLayers();
       const occupied = [];
       const size = map.getSize();
-      stops.forEach((name,i) => {
+      stops.forEach(({name,number},i) => {
         const origin = map.latLngToContainerPoint(points[i]);
         let p = origin;
         // Separate overlapping labels while keeping the actual route anchored.
@@ -39,11 +40,11 @@ export function CourseMap({ names }) {
         const labelPoint = map.containerPointToLatLng(p);
         if (origin.distanceTo(p)>2)
           L.polyline([points[i],labelPoint], {color:"#456a65",weight:1,interactive:false}).addTo(labels);
-        const title = (i+1)+". "+translate(name+(entrancePoints.has(name) ? " (입구 기준)" : ""), language);
+        const title = number+". "+translate(name+(entrancePoints.has(name) ? " (입구 기준)" : ""), language);
         const tooltip = document.createElement("span");
         tooltip.textContent = title;
         L.marker(labelPoint, {title, icon:L.divIcon({className:"course-pin",
-          html:"<span>"+(i+1)+"</span>", iconSize:[26,26], iconAnchor:[13,13]})}).addTo(labels).bindTooltip(tooltip);
+          html:"<span>"+number+"</span>", iconSize:[26,26], iconAnchor:[13,13]})}).addTo(labels).bindTooltip(tooltip);
       });
     }
     drawPins();

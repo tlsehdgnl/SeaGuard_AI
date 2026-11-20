@@ -52,14 +52,15 @@ def fixed_actions(profile, weather):
 
 def recommendations(profile, today=None):
     today = today or datetime.now(KST).date()
+    visit = date.fromisoformat(profile["visit_date"]) if profile.get("visit_date") else today
     matched, pending, excluded = [], [], []
     for original in CATALOG["places"]:
         place = dict(original)
         reasons, checks = [], []
         if place["id"] in profile.get("exclude", []):
             reasons.append("이 기기에서 다른 후보를 요청한 장소")
-        if today.weekday() in place["closed_weekdays"]:
-            reasons.append("오늘은 등록된 정기 휴관일")
+        if visit.weekday() in place["closed_weekdays"]:
+            reasons.append("방문일은 등록된 정기 휴관일")
         if profile["budget"] == "free":
             if place["fee"] == "paid":
                 reasons.append("유료 활동이어서 무료 조건과 맞지 않음")

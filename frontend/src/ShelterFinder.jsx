@@ -5,14 +5,14 @@ import dataset from './shelters.json';
 import { nearestShelters } from './shelters.js';
 import './shelters.css';
 
-export function ShelterFinder({name, compact=false}) {
+export function ShelterFinder({name, compact=false, placePoint}) {
   const {language}=useLanguage();
   const t=(ko,en)=>language==='en'?en:ko;
   const [location,setLocation]=useState(null);
   const [state,setState]=useState('');
   const request=useRef(0);
   useEffect(()=>()=>{request.current+=1;},[]);
-  const point=location?.point || coordinates[name];
+  const point=location?.point || placePoint || coordinates[name];
   const nearby=nearestShelters(point,dataset.items);
   function locate() {
     if (!navigator.geolocation) {setState('unavailable');return;}
@@ -38,5 +38,5 @@ export function ShelterFinder({name, compact=false}) {
     <a href={dataset.source_url} target="_blank" rel="noreferrer">{t('국민재난안전포털 대피시설 지도 ↗','Official evacuation facilities map ↗')}</a>
     <p className="shelter-note">{t('지진해일 전용 대피장소 · 공식 자료 확인','Tsunami evacuation places · Official data retrieved')} {dataset.retrieved_at.slice(0,10)}{!compact && t(' · 현재 위치는 서버에 전송·저장하지 않습니다.',' · Your location is not sent to or stored on our server.')}</p>
   </>;
-  return compact?<details className="shelter-finder compact"><summary>{t('가까운 지진해일 대피장소','Nearby tsunami evacuation place')}</summary>{body}</details>:<section className="shelter-finder"><h3>{t('가까운 지진해일 대피장소','Nearby tsunami evacuation places')}</h3>{body}</section>;
+  return compact?<details className="shelter-finder compact"><summary>{t('가까운 지진해일 대피장소','Nearby tsunami evacuation place')}</summary>{body}</details>:<details className="shelter-finder"><summary>{t('가까운 지진해일 대피장소','Nearby tsunami evacuation places')}</summary>{body}</details>;
 }

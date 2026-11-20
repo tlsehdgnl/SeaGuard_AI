@@ -21,6 +21,13 @@ class ScheduleTests(unittest.TestCase):
         self.assertEqual(result['missing_meals'],0)
         self.assertEqual(result['skipped'],[1])
 
+    def test_closed_lunch_does_not_block_afternoon_museum(self):
+        course = self.course()
+        course.candidates[0].windows = []
+        result = schedule(course, [0, 2])
+        self.assertEqual(result["order"], [2])
+        self.assertEqual(result["missing_meals"], 1)
+
     def test_meal_cannot_fit(self):
         result=schedule(self.course(end_minute=750),[0,1,2])
         self.assertEqual(result['missing_meals'],1)

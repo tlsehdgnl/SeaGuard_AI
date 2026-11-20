@@ -127,13 +127,16 @@ export function JourneyGuide({step, destination, activities, mode}) {
     {open && createPortal(<div className="guide-overlay">
       <div ref={spotlight} className="guide-spotlight" hidden aria-hidden="true" />
       <section ref={panel} className="guide-panel" role="dialog" aria-modal="true" aria-labelledby="guide-title" aria-describedby="guide-body" tabIndex={-1} onKeyDown={keys}>
-        <button type="button" className="guide-character" aria-haspopup="dialog" onClick={() => setChatOpen(true)}><img src={`/characters/${guide.image}.png`} alt={guide.name[en?1:0]}/><span>{guide.name[en?1:0]}</span><small>{en ? 'Ask me' : '질문하기'}</small></button>
+        <button type="button" className="guide-character" aria-haspopup="dialog" aria-label={en ? `Ask ${guide.name[1]}` : `${guide.name[0]}에게 질문하기`} onClick={() => setChatOpen(true)}><img src={`/characters/${guide.image}.png`} alt=""/><span>{guide.name[en?1:0]}</span></button>
         <div className="guide-bubble">
           <div className="guide-meta"><span>{guide.role[en?1:0]} · {index+1}/{guide.tips.length}</span><button type="button" className="guide-close" onClick={close} aria-label={en?'Close guide':'안내 닫기'}>×</button></div>
           <div aria-live="polite" aria-atomic="true"><h2 id="guide-title">{tip[en?3:1]}</h2><p id="guide-body">{tip[en?4:2]}</p></div>
-          <label className="guide-auto"><input type="checkbox" checked={automatic} onChange={e=>{setAutomatic(e.target.checked); write('automatic',e.target.checked?'on':'off');}}/>{en?'Automatically guide new steps':'처음 보는 단계에서 자동 안내'}</label>
+          <label className="guide-auto"><input type="checkbox" checked={!automatic} onChange={e=>{setAutomatic(!e.target.checked); write('automatic',e.target.checked?'off':'on');}}/>{en?'Do not show automatically again':'자동 안내 다시 보지 않기'}</label>
           <div className="guide-controls"><button type="button" onClick={close}>{en?'Skip':'건너뛰기'}</button><div>{index>0 && <button type="button" onClick={()=>setIndex(n=>n-1)}>{en?'Back':'이전'}</button>}<button type="button" className="guide-next" onClick={()=>index<guide.tips.length-1?setIndex(n=>n+1):close()}>{index<guide.tips.length-1?(en?'Next →':'다음 안내 →'):(en?'Let’s try it':'직접 해볼게요')}</button></div></div>
         </div>
+        <button type="button" className="guide-chat-button" aria-haspopup="dialog" onClick={() => setChatOpen(true)}>
+          {en ? 'Ask in chat' : '채팅으로 물어보기'}
+        </button>
       </section>
     </div>,document.body)}
   </>;

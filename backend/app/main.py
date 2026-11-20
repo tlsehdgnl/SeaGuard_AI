@@ -3,7 +3,7 @@ import asyncio
 import math
 import os
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 from pathlib import Path
 from typing import Literal
 
@@ -170,6 +170,7 @@ async def guide(
     transport: Literal["any", "car", "transit"] = "any",
     budget: Literal["any", "free"] = "any",
     time_budget: Literal["any", "30", "60", "90", "120", "180", "240"] = "any",
+    visit_date: date | None = None,
     exclude: str = Query(default="", max_length=100),
 ):
     excluded = list(dict.fromkeys(filter(None, exclude.split(","))))
@@ -180,6 +181,8 @@ async def guide(
         raise HTTPException(422, detail={"message": "알 수 없는 활동입니다."})
     profile = dict(activities=selected, beach=beach_id, mode=mode, activity=activity, children=children,
                    mobility=mobility, transport=transport, budget=budget, time_budget=time_budget, exclude=excluded)
+    if visit_date:
+        profile["visit_date"] = visit_date.isoformat()
     weather_error = None
     try:
         weather = await risk_data(beach_id, mode, with_ai=False)

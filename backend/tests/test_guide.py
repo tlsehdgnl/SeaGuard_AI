@@ -22,6 +22,12 @@ class GuideTests(unittest.TestCase):
     def tearDown(self):
         self.env.stop()
 
+    def test_regular_closure_uses_visit_day(self):
+        sunday = date(2026, 11, 22)
+        for day, closed in [("2026-11-22", False), ("2026-11-23", True)]:
+            results = recommendations({**PROFILE, "visit_date":day}, today=sunday)
+            self.assertEqual("dream" in [p["id"] for p in results["excluded"]], closed)
+
     def test_twenty_activity_and_data_scenarios(self):
         # 5 conditions × 4 profiles. These are simulated validation cases, not user trials.
         profiles = ['activity=walk', 'activity=swim', 'activity=swim&children=true', 'activity=walk&mobility=stroller']

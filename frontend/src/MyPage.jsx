@@ -29,7 +29,7 @@ export function MyPage({ plans, localPlans=[], onOpen, onDelete, onBack, heading
           {stroller:"유모차 동반",step_free:"계단 없는 이동"}[p.mobility],
           {transit:"대중교통",car:"차량 이용"}[p.transport],p.budget === "free" && "무료 활동",
           p.time_budget !== "any" && p.time_budget+"분 이내"].filter(Boolean).join(" · ")}</p>
-        {!!p.stops.length && <p>담은 장소 · {p.stops.join(" → ")}</p>}
+        {(p.stops.length > 0 || p.catalog?.length > 0) && <p>담은 장소 · {[...p.stops,...(p.catalog || []).map(c=>c.name)].join(" → ")}</p>}
         {confirm === key ? <div><p>이 계획을 삭제할까요?</p><div className="toolbar">
           <button onClick={() => setConfirm(null)}>취소</button>
           <button onClick={() => {onDelete(key); setConfirm(null);}}>삭제하기</button></div></div> :

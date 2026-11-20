@@ -58,6 +58,14 @@ export function sanitizeProfile(value) {
   if (selected.length) result.activity = selected;
   const stops = Array.isArray(value.stops) ? value.stops : String(value.stops ?? "").split("|");
   result.stops = [...new Set(stops.filter(name => shopNames.has(name)))];
+  if (typeof value.visit_date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value.visit_date)) result.visit_date = value.visit_date;
+  let catalog = value.catalog;
+  if (typeof catalog === "string") {
+    try { catalog = JSON.parse(catalog); } catch { catalog = []; }
+  }
+  if (Array.isArray(catalog) && catalog.length) result.catalog = catalog.slice(0, 60)
+    .filter(p => p && typeof p.id === "string" && typeof p.name === "string" && p.name.length <= 100)
+    .map(({id,name,kind,latitude,longitude}) => ({id,name,kind,latitude,longitude}));
   result.children = value.children === true || value.children === "true";
   return result;
 }
@@ -86,7 +94,7 @@ export function profileParams(profile) {
   return new URLSearchParams(
     Object.entries(sanitizeProfile(profile)).map(([key, value]) => [
       key,
-      key === "stops" ? value.join("|") : String(value),
+      key === "catalog" ? JSON.stringify(value) : key === "stops" ? value.join("|") : String(value),
     ]),
   );
 }

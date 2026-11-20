@@ -16,6 +16,15 @@ class SeaScheduleTests(unittest.TestCase):
         r=schedule_with_coast(c,[0,1,2],{'status':'candidates'},[p])
         self.assertEqual(r['order'],[1,2,0]);self.assertEqual(r['missing_meals'],0)
         self.assertEqual(r['timeline'][-1]['arrival'],840)
+    def test_short_visit_fits_within_half_hour(self):
+        c = self.make()
+        c.start_minute, c.end_minute, c.meal_times = 840, 870, []
+        c.candidates[0].duration = 15
+        result = schedule_with_coast(c,[0],{"status":"candidates"},[{"minute":840,"score":1}])
+        row, = result["timeline"]
+        self.assertEqual(row["departure"] - row["arrival"], 15)
+        self.assertLessEqual(row["departure"], 870)
+
     def test_missing_forecast_never_schedules_sea(self):
         r=schedule_with_coast(self.make(),[0,1,2],{'status':'unavailable'},[])
         self.assertNotIn(0,r['order']);self.assertIn(1,r['order']);self.assertIsNone(r['sea_plan'].get('selected'))
