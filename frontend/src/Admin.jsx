@@ -88,7 +88,7 @@ export default function Admin() {
         <button onClick={() => setRefresh(v => v+1)}>새로고침</button>
         </div>
       {error && <div className="admin-stats-error" role="alert"><p>{error}</p><button onClick={()=>setRefresh(v=>v+1)}>{language === "en" ? "Retry statistics" : "통계 다시 불러오기"}</button></div>}
-      {data ? <CityStats data={data}/> : <StatsUnavailable loading={!error}/>}
+      {data ? <CityStats data={data} ai={{token:key, days, mode}}/> : <StatsUnavailable loading={!error}/>}
       </section> : <IntegrationDashboard token={key} onUnauthorized={()=>{setKey("");setError("관리자 접속키를 확인하세요.");}}/>}
     </>
   </main>;

@@ -44,19 +44,48 @@ export default function IntegrationDashboard({token,onUnauthorized}) {
   }catch{if(!controller.signal.aborted)setError('failed');}finally{if(!controller.signal.aborted)setLoading(false);}})();
   return()=>controller.abort();
  },[token,request]);
- const healthy=report?.services.filter(s=>s.status==='ok').length||0;
+ const services=report?.services||[];
+ const group=st=>st==="ok"||st==="configured"?"ok":["missing","warning","timeout","unchecked","rate_limited"].includes(st)?"warn":"bad";
+ const tally={ok:0,warn:0,bad:0};services.forEach(sv=>tally[group(sv.status)]++);
+ const healthy=services.filter(sv=>sv.status==="ok").length;
+ const score=services.length?Math.round(100*tally.ok/services.length):0;
+ const sorted=[...services].sort((a,b)=>({bad:0,warn:1,ok:2}[group(a.status)]-{bad:0,warn:1,ok:2}[group(b.status)]));
+ const icons={kakao_login:"💬",kakao_local:"📍",admin:"🔐",gpt:"✦",fishing:"🎣",weather:"🌦️",marine:"🌊",library:"📚",supabase:"🗄️",database:"📊"};
  return <section className="integration-dashboard" aria-labelledby="integration-title">
-  <div className="integration-heading"><div><p className="integration-eyebrow">DEPARTNER · SYSTEM STATUS</p><h2 id="integration-title">{t('API 연결 상태','API connection status')}</h2><p>{t('설정 여부와 실제 연결 결과를 구분해 확인합니다. 키 값은 표시하지 않습니다.','Verify configuration and live connectivity separately. Secret values are never displayed.')}</p></div><span className="integration-environment">{report ? report.environment==='production'?t('운영 서버','Production'):t('로컬 서버','Local') : t('확인 중','Checking')}</span></div>
-  <div className="integration-controls"><label><input type="checkbox" checked={deep} disabled={loading} onChange={e=>setDeep(e.target.checked)}/>{t('GPT 실제 응답도 검사 (소량의 API 비용 발생)','Also test GPT generation (small API charge)')}</label><button disabled={loading} onClick={()=>setRequest({number:request.number+1,deep})}>{loading?t('연결 확인 중…','Checking…'):t('연결 다시 확인','Check connections')}</button></div>
-  <p className="integration-meta" role="status">{loading?t('외부 서비스를 검사하고 있어요. 최대 약 40초가 걸릴 수 있습니다.','Checking external services. This may take around 40 seconds.') : report ? `${t('정상','Connected')} ${healthy}/${report.services.length} · ${new Date(report.checked_at).toLocaleString(en?'en-US':'ko-KR',{timeZone:'Asia/Seoul'})} KST` : ''}{report?.cached&&!loading ? t(' · 30초 이내 검사 결과 재사용',' · Reusing a result checked within 30 seconds'):''}</p>
-  {error&&<p role="alert" className="integration-error">{t('연결 상태를 불러오지 못했습니다. 서버 연결을 확인하고 다시 시도하세요.','Could not load connection status. Check the server and retry.')}</p>}
-  <div className="integration-grid" aria-busy={loading}>{report?.services.map(service=><article key={service.id} className={'integration-card status-'+service.status}>
-   <div className="integration-card-head"><h3>{en?englishNames[service.id]:service.name}</h3><span className="integration-badge">{(statuses[service.status]||statuses.error)[en?1:0]}</span></div>
-   <p className="integration-config">{service.key_required===false?t('API 키 불필요','No API key required'):service.configured?t('서버 설정 있음','Server configuration present'):t('서버 설정 없음','Server configuration missing')}</p>
+  <div className="int-hero">
+   <div className="int-hero-text"><p className="integration-eyebrow">DEPARTNER · SYSTEM STATUS</p><h2 id="integration-title">{t("API 연결 상태","API connection status")}</h2>
+    <p>{t("설정 여부와 실제 연결 결과를 구분해 확인합니다. 키 값은 표시하지 않습니다.","Verify configuration and live connectivity separately. Secret values are never displayed.")}</p>
+    <div className="int-env"><span className={"int-env-dot"+(report?.environment==="production"?" is-prod":"")}/>{report ? report.environment==="production"?t("운영 서버","Production"):t("로컬 서버","Local") : t("확인 중","Checking")}
+     {report&&!loading&&<span className="int-time">{new Date(report.checked_at).toLocaleString(en?"en-US":"ko-KR",{timeZone:"Asia/Seoul",month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})} KST{report.cached?t(" · 재사용"," · cached"):""}</span>}</div>
+   </div>
+   <div className="int-ring" style={{"--p":score+"%"}} role="img" aria-label={t(`정상 ${tally.ok} / 전체 ${services.length}`,`${tally.ok} of ${services.length} healthy`)}>
+    <div><strong>{report?tally.ok:"—"}<small>/{services.length||"—"}</small></strong><span>{t("정상","healthy")}</span></div>
+   </div>
+  </div>
+  {report&&<div className="int-tally">
+   <span className="is-ok"><i/>{t("정상","OK")} <b>{tally.ok}</b></span>
+   <span className="is-warn"><i/>{t("확인 필요","Attention")} <b>{tally.warn}</b></span>
+   <span className="is-bad"><i/>{t("오류","Error")} <b>{tally.bad}</b></span>
+  </div>}
+  <div className="integration-controls">
+   <label className="int-switch"><input type="checkbox" role="switch" checked={deep} disabled={loading} onChange={e=>setDeep(e.target.checked)}/><span aria-hidden="true"/>{t("GPT 실제 응답도 검사 (소량의 API 비용 발생)","Also test GPT generation (small API charge)")}</label>
+   <button disabled={loading} onClick={()=>setRequest({number:request.number+1,deep})}><span className={loading?"int-spin":""} aria-hidden="true">↻</span>{loading?t("연결 확인 중…","Checking…"):t("연결 다시 확인","Check connections")}</button>
+  </div>
+  <p className="integration-meta" role="status">{loading?t("외부 서비스를 검사하고 있어요. 최대 약 40초가 걸릴 수 있습니다.","Checking external services. This may take around 40 seconds."):report?`${t("실제 연결 정상","Live connections")} ${healthy}/${services.length}`:""}</p>
+  {error&&<p role="alert" className="integration-error">{t("연결 상태를 불러오지 못했습니다. 서버 연결을 확인하고 다시 시도하세요.","Could not load connection status. Check the server and retry.")}</p>}
+  <div className="integration-grid" aria-busy={loading}>{!report&&loading&&Array.from({length:6},(_,i)=><div key={i} className="integration-card int-skeleton" aria-hidden="true"/>)}
+   {sorted.map(service=><article key={service.id} className={"integration-card status-"+service.status+" grp-"+group(service.status)}>
+   <div className="integration-card-head"><span className="int-icon" aria-hidden="true">{icons[service.id]||"⚙️"}</span><h3>{en?englishNames[service.id]:service.name}</h3><span className="integration-badge"><i aria-hidden="true"/>{(statuses[service.status]||statuses.error)[en?1:0]}</span></div>
    <p>{(details[service.detail]||details.check_failed)[en?1:0]}</p>
-   {vars[service.id]&&<code>{vars[service.id]}</code>}
-   <dl>{service.model&&<div><dt>{t('모델','Model')}</dt><dd>{service.model}</dd></div>}{service.storage&&<div><dt>{t('저장소','Storage')}</dt><dd>{service.storage}</dd></div>}<div><dt>{t('검사 시간','Check duration')}</dt><dd>{service.latency_ms} ms</dd></div>{service.http_status&&<div><dt>HTTP</dt><dd>{service.http_status}</dd></div>}</dl>
+   <div className="int-meta">
+    <span className="int-chip">{service.key_required===false?t("API 키 불필요","No API key required"):service.configured?t("서버 설정 있음","Configured"):t("서버 설정 없음","Not configured")}</span>
+    {service.model&&<span className="int-chip">{service.model}</span>}
+    {service.storage&&<span className="int-chip">{service.storage}</span>}
+    {service.http_status&&<span className="int-chip">HTTP {service.http_status}</span>}
+    <span className={"int-chip int-latency"+(service.latency_ms>3000?" is-slow":"")}>{service.latency_ms} ms</span>
+   </div>
+   {vars[service.id]&&<details className="int-vars"><summary>{t("환경변수 보기","Environment variables")}</summary><code>{vars[service.id]}</code></details>}
   </article>)}</div>
-  <p className="integration-footnote">{t('검사는 현재 접속한 서버 기준입니다. 기상·해양은 망상해변 좌표로 확인합니다. 외부 지도·공식 안내 링크는 API 연결 검사에 포함되지 않습니다.','Checks apply to the server you are using. Weather and marine probes use Mangsang Beach coordinates. External map and information links are not API checks.')}</p>
+  <p className="integration-footnote">{t("검사는 현재 접속한 서버 기준입니다. 기상·해양은 망상해변 좌표로 확인합니다. 외부 지도·공식 안내 링크는 API 연결 검사에 포함되지 않습니다.","Checks apply to the server you are using. Weather and marine probes use Mangsang Beach coordinates. External map and information links are not API checks.")}</p>
  </section>;
 }
