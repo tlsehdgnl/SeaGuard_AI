@@ -388,46 +388,212 @@ body::after {
   .journey-app.step-1 #activity > .form-grid { grid-column: 2; grid-row: 2 / span 2; grid-template-columns: 1fr; gap: 10px; }
   .journey-app.step-1 .activity-postcards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
 
-  /* Steps 3–5 — two-column sheet */
-  .journey-app:is(.step-2, .step-3, .step-4):not(.is-my-page) > main {
+  /* Step 3 briefing — two columns with equal-height rows:
+     [weather + numbers | actions]  /  [hourly outlook | official links] */
+  .journey-app.step-2:not(.is-my-page) > main {
     display: grid; grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr);
-    column-gap: 22px; grid-auto-flow: row dense; align-items: start;
+    column-gap: 22px; grid-auto-flow: row dense; align-items: stretch;
   }
-  .journey-app:is(.step-2, .step-3, .step-4):not(.is-my-page) > main > * { grid-column: 1 / -1; min-width: 0; }
-  .journey-app:is(.step-2, .step-3, .step-4):not(.is-my-page) > main > :is(section, .card) { margin-top: 0 !important; margin-bottom: 18px; }
-
-  /* Step 3 briefing: numbers + outlook | actions + official links */
+  .journey-app.step-2:not(.is-my-page) > main > * { grid-column: 1 / -1; min-width: 0; }
+  .journey-app.step-2:not(.is-my-page) > main > :is(section, .card) { margin-top: 0 !important; margin-bottom: 18px; }
   .journey-app.step-2 > main > :is(.weather-summary, .outlook, .error, .loading) { grid-column: 1; }
-  .journey-app.step-2 > main > #actions { grid-column: 2; grid-row: span 2; }
-  .journey-app.step-2 > main > .official { grid-column: 1 / -1; }
+  .journey-app.step-2 > main > :is(#actions, .official) { grid-column: 2; }
   .journey-app.step-2 > main > #forecast { margin-bottom: 18px; padding: 12px 18px; }
-  .journey-app.step-2 .dashboard { grid-template-columns: 1fr; gap: 14px; }
+  .journey-app.step-2 .weather-summary { display: flex; flex-direction: column; }
+  .journey-app.step-2 .dashboard { flex: 1; display: flex; flex-direction: column; gap: 14px; margin-top: 0 !important; }
+  .journey-app.step-2 .weather-postcard { flex: 1; }
   .journey-app.step-2 .metrics { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
   .journey-app.step-2 .metric { padding: 14px 14px 12px !important; }
   .journey-app.step-2 .metric p { font-size: 26px; margin: 6px 0 2px; }
-  .journey-app.step-2 .weather-postcard { padding: 14px 18px !important; gap: 16px; }
-  .journey-app.step-2 .weather-sketch { width: 96px !important; height: 96px !important; flex: none; }
-  .journey-app.step-2 :is(#actions, .official, .outlook) { margin-top: 0 !important; margin-bottom: 18px; padding: 18px 22px !important; }
-  .journey-app.step-2 .weather-summary { margin-bottom: 18px; }
+  .journey-app.step-2 :is(#actions, .official, .outlook) { padding: 18px 22px !important; }
   .journey-app.step-2 #actions ol { margin: 8px 0; padding-left: 20px; }
   .journey-app.step-2 #actions li { margin: 6px 0; line-height: 1.55; }
-  .journey-app.step-2 .official-grid > a { padding: 12px 16px !important; }
-  .journey-app.step-2 .outlook table td, .journey-app.step-2 .outlook table th { padding-top: 7px; padding-bottom: 7px; }
+  .journey-app.step-2 .official h2 { margin-top: 0; }
+  .journey-app.step-2 .official-grid { grid-template-columns: 1fr; gap: 8px; }
+  .journey-app.step-2 .official-grid > a { padding: 11px 16px !important; display: grid; grid-template-columns: 1fr auto; column-gap: 12px; align-items: center; }
+  .journey-app.step-2 .official-grid > a span { grid-column: 1; font-size: 12.5px; }
+  .journey-app.step-2 .official-grid > a small { grid-column: 2; grid-row: 1 / span 2; }
+  .journey-app.step-2 .outlook h2 { margin-top: 0; }
+  .journey-app.step-2 .outlook table :is(td, th) { padding-top: 7px; padding-bottom: 7px; }
 
-  /* Step 4 nearby: outdoor | indoor side by side */
-  .journey-app.step-3 > main > #local-activities { grid-column: 1; }
-  .journey-app.step-3 > main > .alternatives { grid-column: 2; margin-top: 0; }
-  .journey-app.step-3 .place-grid { grid-template-columns: 1fr; }
-  .journey-app.step-3 .shop-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  .journey-app.step-3 .shop-cards li { padding: 10px 12px !important; font-size: 13px; line-height: 1.45; }
-  .journey-app.step-3 .shop-cards .route-toggle { min-height: 36px !important; padding: 6px 10px !important; font-size: 14px; }
-  .journey-app.step-3 .shop-cards a { min-height: 32px; font-size: 12px; }
-  .journey-app.step-3 :is(#local-activities .card, .alternatives) { padding: 18px 22px !important; }
+  /* Step 4 nearby — full-width outdoor first, indoor below */
+  .journey-app.step-3 .shop-cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } /* 6 per page → 2 full rows */
+  .journey-app.step-3 .nearby > ul:not(.shop-cards) { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+  .journey-app.step-3 .programs ul { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; }
+  .journey-app.step-3 .place-grid { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  /* a lone card spreads its info across the row instead of leaving a gap */
+  .journey-app.step-3 .place-grid > .place:only-child { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 28px; align-content: start; }
+  .journey-app.step-3 .place-grid > .place:only-child > :is(.place-top, h3, p) { grid-column: 1; }
+  .journey-app.step-3 .place-grid > .place:only-child > :is(.checks, details, .place-links) { grid-column: 2; }
+  .journey-app.step-3 .place-grid > .place:only-child > .checks { grid-row: 1 / span 3; align-self: start; }
 
-  /* Step 5 summary | save & share */
-  .journey-app.step-4 > main > .plan-summary { grid-column: 1; }
-  .journey-app.step-4 > main > :is(#save-plan, .share-panel) { grid-column: 2; }
+  /* Step 5 summary — tiles on top, course | AI + map */
+  .journey-app.step-4 .plan-summary dl { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .journey-app.step-4 .course-planner { grid-template-columns: minmax(0, 1.2fr) minmax(0, .95fr); }
+  .journey-app.step-4 .course-side { position: sticky; top: 96px; }
 }
+
+/* ── Components (all widths) ───────────────────────────────── */
+/* Briefing hero card with animated sea scene */
+.journey-app .weather-postcard {
+  position: relative; overflow: hidden; isolation: isolate; display: flex !important; align-items: flex-end;
+  min-height: 230px; padding: 0 !important; border: 0 !important; background: #cfe6f1 !important;
+  box-shadow: 0 18px 40px -18px rgb(15 90 120 / .45) !important;
+}
+.journey-app .weather-postcard .weather-art { position: absolute; inset: 0; width: 100%; height: 100%; z-index: -1; }
+.journey-app .weather-copy {
+  margin: 16px; padding: 14px 20px 16px; max-width: min(78%, 420px); border-radius: 18px;
+  background: rgb(255 255 255 / .74); border: 1px solid rgb(255 255 255 / .9);
+  backdrop-filter: blur(14px) saturate(1.4); -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  box-shadow: 0 8px 24px rgb(10 50 70 / .14);
+  animation: rise-in .8s var(--ease-out) .15s both;
+}
+.journey-app .weather-copy .eyebrow { margin: 0 0 4px; font-size: 12px; font-weight: 700; color: var(--sea); letter-spacing: .02em; }
+.journey-app .weather-copy h2 { margin: 0 0 4px !important; font-size: clamp(22px, 2.3vw, 30px) !important; letter-spacing: -.04em; line-height: 1.25 !important; color: var(--ink); }
+.journey-app .weather-copy p:last-child { margin: 0; font-size: 15px; color: #3d566b; }
+.wa-swell { animation: swell-x 14s linear infinite; }
+.wa-swell.s2 { animation-duration: 10s; animation-direction: reverse; }
+.wa-swell.s3 { animation-duration: 7s; }
+.wa-waves .wa-swell { animation-duration: 6s; }
+.wa-waves .wa-swell.s3 { animation-duration: 4.5s; }
+@keyframes swell-x { from { transform: translateX(0); } to { transform: translateX(-600px); } }
+.wa-swell.s2 { animation-name: swell-x2; }
+@keyframes swell-x2 { from { transform: translateX(-600px); } to { transform: translateX(0); } }
+.wa-cloud { animation: cloud-x 22s ease-in-out infinite alternate; }
+.wa-cloud.c2 { animation-duration: 28s; animation-direction: alternate-reverse; }
+@keyframes cloud-x { from { transform: translateX(-24px); } to { transform: translateX(30px); } }
+.wa-sun { transform-box: view-box; transform-origin: 455px 150px; animation: sun-pulse 6s ease-in-out infinite alternate; }
+@keyframes sun-pulse { to { transform: scale(1.06); } }
+.wa-glint { animation: glint 3s ease-in-out infinite alternate; }
+@keyframes glint { from { opacity: .35; } to { opacity: .95; } }
+.wa-rain line { animation: rain-fall .9s linear infinite; }
+.wa-rain line:nth-child(3n) { animation-delay: -.3s; }
+.wa-rain line:nth-child(3n+1) { animation-delay: -.6s; }
+@keyframes rain-fall { from { transform: translateY(-30px); opacity: 0; } 30% { opacity: 1; } to { transform: translateY(60px); opacity: 0; } }
+.wa-gusts path { stroke-dasharray: 60 400; animation: gust 2.8s linear infinite; }
+.wa-gusts path:nth-child(2) { animation-delay: -1s; }
+.wa-gusts path:nth-child(3) { animation-delay: -1.8s; }
+@keyframes gust { from { stroke-dashoffset: 460; } to { stroke-dashoffset: 0; } }
+
+/* Pill links (maps, phone, official) replacing underlined hyperlinks */
+.journey-app .pill-link {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 32px; padding: 5px 12px; border-radius: 999px;
+  font-size: 12.5px; font-weight: 650; line-height: 1; text-decoration: none; white-space: nowrap;
+  color: #135f6c; background: rgb(15 143 154 / .08); border: 1px solid rgb(15 143 154 / .18);
+  transition: background-color .2s, color .2s, transform .4s var(--spring), box-shadow .2s;
+}
+.journey-app .pill-link:hover { background: var(--sea); color: #fff; transform: translateY(-1px); box-shadow: 0 6px 16px -6px rgb(15 143 154 / .6); }
+.journey-app .pill-map { color: #0b7a3e; background: #eaf8ef; border-color: #c6ebd3; }
+.journey-app .pill-map svg { color: #03c75a; }
+.journey-app .pill-map:hover { background: #03c75a; color: #fff; box-shadow: 0 6px 16px -6px rgb(3 160 80 / .6); }
+.journey-app .pill-map:hover svg { color: #fff; }
+.journey-app .nearby-links { gap: 8px !important; margin: 8px 0; }
+.journey-app :is(.nearby-links, .place-links) a { min-height: 32px !important; }
+.journey-app .place-links { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 6px !important; }
+.journey-app main a:not([class]) { color: #0f6f7a; text-decoration: none; font-weight: 600; }
+.journey-app main a:not([class]):hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* Shops: compact, left-aligned cards */
+.journey-app .nearby h2, .journey-app .alternatives > h2 { margin: 0 0 6px; font-size: 22px; letter-spacing: -.03em; }
+.journey-app .nearby h3, .journey-app .alternatives h3 { margin: 18px 0 6px; font-size: 16px; }
+.journey-app .nearby .field { max-width: 320px; }
+.journey-app .nearby .hint, .journey-app .alternatives .hint, .journey-app .alternatives .sub { margin: 4px 0 8px; font-size: 12.5px; }
+.journey-app .shop-cards { gap: 10px !important; margin: 8px 0 10px !important; }
+.journey-app .shop-cards li {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 12px 14px !important; border-radius: 16px !important; border: 1px solid rgb(20 42 62 / .08) !important;
+  background: rgb(255 255 255 / .85); transition: transform .5s var(--spring), box-shadow .3s, border-color .3s;
+}
+.journey-app .shop-cards li:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+.journey-app .shop-cards .route-toggle {
+  justify-content: flex-start !important; text-align: left !important; width: auto !important; min-height: 0 !important;
+  padding: 2px 0 !important; font-size: 15px; font-weight: 750; background: none !important; color: var(--ink) !important;
+}
+.journey-app .shop-cards .route-toggle[aria-pressed="true"] { color: var(--sea) !important; }
+.journey-app .shop-cards li.is-selected { background: linear-gradient(160deg, #effafb, #fff) !important; border-color: rgb(15 143 154 / .45) !important; }
+.journey-app .shop-cards li p { margin: 0 0 8px !important; font-size: 12.5px; color: #5b6f80; line-height: 1.45; }
+.journey-app .shop-cards li .pill-link { margin-top: auto; }
+.journey-app .nearby > ul:not(.shop-cards) li { border: 1px solid rgb(20 42 62 / .08) !important; border-radius: 16px; padding: 12px 14px !important; background: rgb(255 255 255 / .8); }
+.journey-app .nearby > ul:not(.shop-cards) li p { font-size: 13px; color: #5b6f80; }
+
+/* Library programs */
+.journey-app .programs ul { max-height: 20rem !important; padding-right: 6px !important; scrollbar-width: thin; }
+.journey-app .programs li { padding: 10px 2px !important; }
+.journey-app .programs li a { color: var(--ink) !important; font-weight: 650; font-size: 14px; text-decoration: none; line-height: 1.45; }
+.journey-app .programs li a:hover { color: var(--sea) !important; }
+.journey-app .programs li p { font-size: 12.5px !important; color: #5b6f80; margin: 4px 0 !important; }
+.journey-app .programs li small { font-size: 12px; color: #6d7f8e; }
+
+/* Facility cards: tighter rhythm, left aligned */
+.journey-app .place { padding: 16px 18px !important; }
+.journey-app .place h3 { text-align: left !important; margin: 8px 0 4px !important; font-size: 17px !important; }
+.journey-app .place p { margin: 3px 0 !important; font-size: 13.5px; line-height: 1.5; }
+.journey-app .place .address, .journey-app .place .fee { font-size: 12.5px !important; color: #64788a; }
+.journey-app .place .checks { margin: 8px 0 !important; padding: 8px 12px 8px 26px !important; border-radius: 12px; font-size: 12.5px; }
+.journey-app .place details { margin-top: 6px !important; font-size: 13px; }
+.journey-app .place .feedback { border-top: 1px solid rgb(20 42 62 / .07); padding-top: 6px; }
+.journey-app .place .route-toggle { justify-content: flex-start !important; text-align: left !important; padding: 0 !important; min-height: 0 !important; background: none !important; color: var(--ink) !important; font-size: 17px; }
+.journey-app .place .route-toggle[aria-pressed="true"] { color: var(--sea) !important; }
+
+/* Plan summary tiles */
+.journey-app .plan-summary > h2 { margin: 0 0 12px; font-size: 22px; letter-spacing: -.03em; }
+.journey-app .plan-summary dl { display: grid; gap: 10px; margin: 0 0 18px !important; }
+.journey-app .plan-summary dl div {
+  display: block !important; padding: 12px 16px !important; border: 0 !important; border-radius: 16px;
+  background: linear-gradient(150deg, rgb(15 143 154 / .08), rgb(143 201 236 / .10));
+}
+.journey-app .plan-summary dt { font-size: 12px; font-weight: 700; color: var(--sea) !important; margin-bottom: 4px; }
+.journey-app .plan-summary dd { font-size: 14.5px; font-weight: 600; color: var(--ink); line-height: 1.45; }
+
+/* Course planner: main | aside */
+.journey-app .course-planner { display: grid; gap: 22px; border: 0 !important; padding: 0 !important; margin: 0 !important; align-items: start; }
+.journey-app .course-title { display: flex; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+.journey-app .course-title h3 { margin: 0; font-size: 18px; }
+.journey-app .course-title p { margin: 0; font-size: 13px; color: #5b6f80; }
+.journey-app .course-settings fieldset { padding: 12px 16px !important; gap: 10px 14px !important; border-radius: 16px !important; border-color: rgb(20 42 62 / .12) !important; }
+.journey-app .course-settings label { font-size: 12.5px; color: #4b6275; gap: 4px !important; }
+.journey-app .course-settings input, .journey-app .course-settings select { padding: 8px 10px !important; border-radius: 10px !important; border-color: rgb(20 42 62 / .15) !important; }
+.journey-app .course-settings button[type="submit"] { border-radius: 999px !important; padding: 10px 18px !important; background: var(--navy) !important; }
+.journey-app .course-main > p, .journey-app .course-main [aria-live] > p { font-size: 13px; }
+.journey-app .course-main h4 { margin: 16px 0 4px; font-size: 15px; }
+.journey-app .course-timeline { list-style: none; padding: 0 !important; margin: 10px 0 !important; }
+.journey-app .course-timeline li { display: grid; grid-template-columns: 96px 1fr; gap: 12px; margin: 0 !important; }
+.journey-app .tl-time { font-size: 12.5px; font-weight: 700; color: var(--sea); padding-top: 12px; font-variant-numeric: tabular-nums; }
+.journey-app .tl-body { position: relative; padding: 10px 0 12px 18px; border-left: 2px solid rgb(15 143 154 / .2); }
+.journey-app .tl-body::before { content: ""; position: absolute; left: -7px; top: 15px; width: 12px; height: 12px; border-radius: 50%; background: #fff; border: 3px solid var(--sea-2); }
+.journey-app .is-meal .tl-body::before { border-color: var(--dawn); }
+.journey-app .is-meal .tl-time { color: #d4673f; }
+.journey-app .tl-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.journey-app .tl-head strong { font-size: 15px; }
+.journey-app .tl-kind { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: rgb(15 143 154 / .1); color: var(--sea); }
+.journey-app .is-meal .tl-kind { background: rgb(255 155 120 / .16); color: #c2582f; }
+.journey-app .tl-body p { margin: 4px 0 0 !important; font-size: 12.5px; color: #5b6f80; }
+.journey-app .course-side { display: flex; flex-direction: column; gap: 14px; }
+.journey-app .chat-cta {
+  position: relative; overflow: hidden; isolation: isolate; display: flex !important; align-items: center; gap: 14px;
+  width: 100%; min-height: 0 !important; padding: 18px 20px !important; border: 0 !important; border-radius: 22px !important;
+  background: linear-gradient(125deg, var(--navy), #1c5470 55%, var(--sea)) !important; color: #fff !important; text-align: left;
+  box-shadow: 0 16px 36px -14px rgb(15 90 120 / .75); transition: transform .5s var(--spring), box-shadow .3s;
+}
+.journey-app .chat-cta::after {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / .28) 50%, transparent 65%);
+  transform: translateX(-120%); animation: cta-sheen 4.5s ease-in-out 1.2s infinite;
+}
+@keyframes cta-sheen { 0%, 55% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
+.journey-app .chat-cta:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 22px 44px -14px rgb(15 90 120 / .85); }
+.journey-app .chat-cta:disabled { opacity: .7; cursor: progress; }
+.journey-app .chat-cta-icon { display: grid; place-items: center; flex: none; width: 46px; height: 46px; border-radius: 15px; font-size: 22px; background: rgb(255 255 255 / .16); border: 1px solid rgb(255 255 255 / .3); animation: twinkle 2.4s ease-in-out infinite; }
+@keyframes twinkle { 50% { transform: rotate(18deg) scale(1.08); } }
+.journey-app .chat-cta-text { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+.journey-app .chat-cta-text strong { font-size: 17px; letter-spacing: -.02em; }
+.journey-app .chat-cta-text small { font-size: 12.5px; color: rgb(255 255 255 / .8); font-weight: 500; }
+.journey-app .chat-cta-arrow { font-size: 22px; transition: transform .45s var(--spring); }
+.journey-app .chat-cta:hover .chat-cta-arrow { transform: translateX(5px); }
+.journey-app .course-map-card { border-radius: 20px; overflow: hidden; background: rgb(255 255 255 / .85); border: 1px solid rgb(20 42 62 / .08); box-shadow: var(--shadow-soft); }
+.journey-app .course-map-card .hint { margin: 0; padding: 8px 14px 10px; font-size: 12px; }
+.journey-app #save-plan h2 { margin: 0 0 10px; font-size: 18px; }
+.journey-app #save-plan .toolbar button { border-radius: 999px !important; }
 
 /* ── Mobile ────────────────────────────────────────────────── */
 @media (max-width: 750px) {

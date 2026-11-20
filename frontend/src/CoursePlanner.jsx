@@ -1,4 +1,5 @@
 import { CourseMap } from "./CourseMap.jsx";
+import { MapLink } from "./MapLink.jsx";
 import { useLanguage } from "./i18n.js";
 import coordinates from "./routeCoordinates.json";
 import React, { useState, useEffect, useRef } from "react";
@@ -123,8 +124,8 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
     setApplied(settings); retry(n=>n+1);
   }
   return <section className="course-planner">
-    <h3>관광 코스</h3>
-    <p>출발 · {start}</p>
+    <div className="course-main">
+    <div className="course-title"><h3>관광 코스</h3><p>출발 · {start}</p></div>
     <form className="course-settings" onSubmit={apply}>
       <fieldset disabled={sending}><legend>일정 조건</legend>
         <label>출발 시간<input type="time" required value={settings.start} onChange={e=>setSettings({...settings,start:e.target.value})}/></label>
@@ -145,17 +146,28 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
     {result && <div aria-live="polite"><h4>{result.source === "ai" ? "AI 추천 방문 순서" : "거리 기반 방문 순서"} · 출발 포함 {result.stops.length+1}곳</h4>
       {result.source === "basic" && <p className="hint">AI 응답을 사용할 수 없어 위치를 기준으로 방문 순서를 계산했어요.</p>}
       <p className="hint">이동시간은 직선거리 기반 추정치이며 실제 도로·교통·대중교통 시간표를 반영하지 않습니다. 이동수단 미선택 시 도보로 계산합니다.</p>
-      <ol>{result.timeline.map(row=>{const stop=JSON.parse(payload).candidates[row.id]; return <li key={row.id} data-place-name={stop.name}>
-        <strong>{clock(row.arrival)}–{clock(row.departure)} · {row.meal ? "식사" : "방문"}</strong><br/>
-        <a target="_blank" rel="noreferrer" href={"https://map.naver.com/p/search/"+encodeURIComponent("동해시 "+stop.name)}>{stop.name} ↗</a>
-        <p>{stop.detail}</p><p>예상 이동 {row.travel_minutes} min · {row.distance_km === null ? "좌표 미확인" : `${row.distance_km} km`} · {row.hours_known ? "입력한 운영시간 반영" : "운영시간 확인 필요"}</p>
+      <ol className="course-timeline">{result.timeline.map(row=>{const stop=JSON.parse(payload).candidates[row.id]; return <li key={row.id} data-place-name={stop.name} className={row.meal ? "is-meal" : undefined}>
+        <span className="tl-time">{clock(row.arrival)}–{clock(row.departure)}</span>
+        <div className="tl-body">
+          <div className="tl-head"><strong>{stop.name}</strong><span className="tl-kind">{row.meal ? "식사" : "방문"}</span>
+            <MapLink href={"https://map.naver.com/p/search/"+encodeURIComponent("동해시 "+stop.name)} name={stop.name} /></div>
+          <p>{stop.detail}</p><p className="tl-meta">예상 이동 {row.travel_minutes} min · {row.distance_km === null ? "좌표 미확인" : `${row.distance_km} km`} · {row.hours_known ? "입력한 운영시간 반영" : "운영시간 확인 필요"}</p>
+        </div>
       </li>})}</ol>
       {!!result.missing_meals && <p role="status">배치하지 못한 식사: {result.missing_meals} · 식사 시간, 식당 또는 여행 시간을 조정해 주세요.</p>}
       {!!result.skipped.length && <p>일정에 넣지 못한 장소: {result.skipped.map(i=>JSON.parse(payload).candidates[i].name).join(", ")} · 시간·식사 횟수·운영시간 조건을 확인해 주세요.</p>}
-      <CourseMap names={[start,...result.stops.map(stop => stop.name)]} />
-      <p className="hint">이동시간과 영업 여부는 각 장소의 지도에서 확인하세요.</p>
     </div>}
-    <button className="chat-link" disabled={!result} onClick={()=>setChatOpen(true)} aria-haspopup="dialog">이 계획으로 AI와 대화하기</button>
+    </div>
+    <aside className="course-side">
+      <button className="chat-link chat-cta" disabled={!result} onClick={()=>setChatOpen(true)} aria-haspopup="dialog">
+        <span className="chat-cta-icon" aria-hidden="true">✦</span>
+        <span className="chat-cta-text"><strong>이 계획으로 AI와 대화하기</strong>
+          <small>{result ? "동선·식사 시간을 AI와 함께 다듬어요" : "코스를 만드는 중이에요…"}</small></span>
+        <span className="chat-cta-arrow" aria-hidden="true">→</span>
+      </button>
+      {result && <div className="course-map-card"><CourseMap names={[start,...result.stops.map(stop => stop.name)]} />
+        <p className="hint">이동시간과 영업 여부는 각 장소의 지도에서 확인하세요.</p></div>}
+    </aside>
     {chatOpen && <dialog ref={chatDialog} className="trip-chat-dialog" aria-labelledby="trip-chat-title" onCancel={()=>setChatOpen(false)} onClick={e=>{if(e.target===e.currentTarget)setChatOpen(false);}}>
       <div className="trip-chat-shell">
         <header className="trip-chat-header">

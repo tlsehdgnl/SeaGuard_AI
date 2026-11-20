@@ -1,6 +1,8 @@
 import { MyPage } from "./MyPage.jsx";
 import { listPlans, savePlan, PLAN_PREFIX } from "./savedPlans.js";
 import { CoursePlanner } from "./CoursePlanner.jsx";
+import { WeatherArt } from "./WeatherArt.jsx";
+import { MapLink, PhoneLink, OutLink } from "./MapLink.jsx";
 import { weatherSummary } from "./weatherSummary.js";
 import { BEACHES, destinationName } from "./beaches.js";
 import React, { useEffect, useRef, useState } from "react";
@@ -136,20 +138,20 @@ function Outdoor({ profile, weather, onStopsChange }) {
           onClick={() => onStopsChange(selected ? profile.stops.filter(stop => stop !== name) : [...profile.stops, name])}>
           {name}</button>
         <p>{area && area+" 권역 · "}{kind} · {address}</p>
-        <a href={map(name)} target="_blank" rel="noreferrer">네이버 지도에서 {name} 검색 ↗</a>
+        <MapLink href={map(name)} name={name} />
       </li>;
     })}</ul>
     {visibleShops.length > shopLimit && <button type="button" onClick={() => setShopLimit(shopLimit + 6)}>가게 더 보기 ({visibleShops.length-shopLimit}곳 남음)</button>}
     <p className="hint">영업시간과 메뉴는 방문 전에 확인하세요.</p>
-    <div className="nearby-links">{(shopSearches[category] || ["식당","카페","술집","놀거리"]).map(kind => <a key={kind} href={map(beach+" 주변 "+kind)} target="_blank" rel="noreferrer">주변 {kind} 검색 ↗</a>)}</div>
+    <div className="nearby-links">{(shopSearches[category] || ["식당","카페","술집","놀거리"]).map(kind => <MapLink key={kind} href={map(beach+" 주변 "+kind)} label={"주변 "+kind} />)}</div>
     <h3>바깥에서 즐길 거리</h3>
     {weather?.risk?.level !== "low" ? <p>주의 신호가 있거나 예보를 확인할 수 없어 야외 코스 추천을 보류합니다.</p> :
       <><p className="hint">{weather.meta.is_demo && "예시 조건으로 보는 코스입니다. "}출발 전에 현장 통제와 개방 여부를 확인하세요.</p>
       <ul>{localActivities.slice(0,activityLimit).map(([place,description]) => <li key={place} data-place-name={place}><strong>{place}</strong><p>{description}</p>
-        <div className="nearby-links"><a href={map(place)} target="_blank" rel="noreferrer">위치·경로 확인 ↗</a></div></li>)}</ul>
+        <div className="nearby-links"><MapLink href={map(place)} name={place} /></div></li>)}</ul>
       {activityLimit < localActivities.length && <button type="button" onClick={() => setActivityLimit(localActivities.length)}>활동 더 보기 ({localActivities.length-activityLimit}곳 남음)</button>}
       {(profile.mobility !== "any" || profile.transport==="transit" || profile.time_budget!=="any" || profile.budget!=="any") && <p>선택한 이동 조건·소요시간·비용은 출발 전 별도 확인이 필요합니다.</p>}</>}
-    <div className="nearby-links"><a href="https://www.dh.go.kr/tour/index.do" target="_blank" rel="noreferrer">동해시 공식 관광 안내 ↗</a></div>
+    <div className="nearby-links"><OutLink href="https://www.dh.go.kr/tour/index.do">동해시 공식 관광 안내</OutLink></div>
   </section>;
 }
 
@@ -210,7 +212,7 @@ function LibraryPrograms() {
         <small>접수 {item.registration || "원문 확인"} · <span className={item.status.replace(/\s/g, "") === "접수종료" ? "registration-closed" : undefined}>{item.status}</span> {item.is_open && item.days_left != null && <strong>{item.days_left === 0 ? "D-day" : `D-${item.days_left}`}</strong>}</small>
       </li>)}</ul> : <p>{data.missing?.length ? "확인된 목록에 표시할 강좌가 없습니다." : "조회한 목록에 기간이 남은 강좌가 없습니다."}</p>}
     </>}
-    <div className="toolbar"><a href="https://www.donghaelib.go.kr/web/menu/10027/program/30010/lectureList.do" target="_blank" rel="noreferrer">전체 일정·신청 ↗</a>
+    <div className="toolbar"><OutLink href="https://www.donghaelib.go.kr/web/menu/10027/program/30010/lectureList.do">전체 일정·신청</OutLink>
     {(data || error) && <button onClick={() => setAttempt(n => n+1)}>일정 새로 조회</button>}</div>
   </section>;
 }
@@ -238,9 +240,9 @@ function PlanSummary({ indoorPlaces, profile, beachName, activityNames, weather,
 
 function WeatherCard({ weather, beachName }) {
   const { scene, title, detail } = weatherSummary(weather.values);
-  return <div className="card weather-postcard">
-    <div className={`weather-sketch sketch-${scene}`} aria-hidden="true" />
-    <div><p className="eyebrow">{beachName} · {weather.meta.is_demo ? "예시 날씨" : "현재 시간대 예보"}</p>
+  return <div className={`card weather-postcard scene-${scene}`}>
+    <WeatherArt scene={scene} />
+    <div className="weather-copy"><p className="eyebrow">{beachName} · {weather.meta.is_demo ? "예시 날씨" : "현재 시간대 예보"}</p>
       <h2>{title}</h2><p>{detail}</p></div>
   </div>;
 }
@@ -1111,10 +1113,8 @@ function Place({ place, onFeedback, selected, onToggle }) {
         ))}
       </details>
       <div className="place-links">
-        <a href={place.map_url} target="_blank" rel="noreferrer">
-          위치·경로 확인 ↗
-        </a>
-        <a href={`tel:${place.phone}`}>전화 문의</a>
+        <MapLink href={place.map_url} name={place.name} />
+        <PhoneLink phone={place.phone} />
       </div>
       <details className="feedback">
         <summary>이 후보가 맞지 않나요?</summary>
