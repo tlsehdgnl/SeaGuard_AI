@@ -10,6 +10,7 @@ from fastapi import APIRouter, Header, HTTPException, Query, Response
 from pydantic import BaseModel, Field
 
 from .stats_db import database
+from . import supabase_stats
 from .stats_places import PLACES
 
 # Preserve LJH's historical ID while accepting every SDH destination.
@@ -50,6 +51,9 @@ class Event(BaseModel):
 def record(event: Event):
     if (event.beach and event.beach not in DESTINATIONS) or (event.poi_id and event.poi_id not in PLACES) or (event.kind != "start" and not event.beach):
         raise HTTPException(422, "장소 정보를 확인하세요.")
+    if supabase_stats.enabled():
+        supabase_stats.call('depart_events', {'id':str(event.id),'session_id':str(event.session_id),'kind':event.kind,'beach':event.beach or '', 'poi_id':event.poi_id,'demo':event.demo,'created_at':int(time.time()),'context':event.context.model_dump(mode='json') if event.kind=='plan_seen' and event.context else None})
+        return
     with database() as q:
         saved = q("INSERT INTO events(id,session_id,kind,beach,poi_id,demo,created_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(id) DO NOTHING",
           (str(event.id), str(event.session_id), event.kind, event.beach or "", event.poi_id, int(event.demo), int(time.time())))
@@ -78,19 +82,23 @@ def stats(response: Response, days: int = Query(7, ge=1, le=30), authorization: 
         condition += " AND demo=?"
         params += (int(mode == "demo"),)
     # Start happens before the user selects a forecast mode.
-    with database() as q:
-        starts = q("SELECT COUNT(*) FROM events WHERE kind='start' AND " + window, params[:2]).fetchone()[0]
-        counts = dict(q("SELECT kind,count(*) FROM events WHERE " + condition + " AND kind<>'start' GROUP BY kind", params).fetchall())
-        beaches = q("SELECT beach,count(*) FROM events WHERE kind='plan_seen' AND " + condition + " GROUP BY beach ORDER BY count(*) DESC, beach", params).fetchall()
-        popular = q("SELECT poi_id,count(*) FROM events WHERE poi_id<>'' AND kind IN ('map_click','official_click') AND " + condition + " GROUP BY poi_id ORDER BY count(*) DESC, poi_id", params).fetchall()
-        daily = q("SELECT CAST((created_at + 32400)/86400 AS BIGINT), kind, count(*) FROM events WHERE " + condition + " AND kind<>'start' GROUP BY 1,2", params).fetchall()
-        funnel = q("WITH scoped AS (SELECT session_id,kind,created_at FROM events WHERE " + condition + """),
-            plans AS (SELECT session_id, MIN(created_at) first_view FROM scoped WHERE kind='plan_seen' GROUP BY session_id)
-            SELECT COUNT(*), COUNT(CASE WHEN EXISTS (SELECT 1 FROM scoped s WHERE s.session_id=p.session_id
-              AND s.kind IN ('map_click','official_click') AND s.created_at>=p.first_view) THEN 1 END) FROM plans p""", params).fetchone()
-        context = q("SELECT start_hour,risk,car,count(*) FROM plan_context JOIN events ON events.id=event_id WHERE " + condition + " GROUP BY start_hour,risk,car ORDER BY start_hour,risk,car",params).fetchall()
-        schedule = q("SELECT travel_date,beach,start_hour,count(*),sum(CASE WHEN car=0 THEN 1 ELSE 0 END) FROM plan_context JOIN events ON events.id=event_id WHERE travel_date IS NOT NULL AND " + condition + " GROUP BY travel_date,beach,start_hour ORDER BY travel_date,start_hour,beach",params).fetchall()
-        trails = q("SELECT weather,count(*) FROM trail WHERE stops IS NOT NULL GROUP BY weather ORDER BY count(*) DESC, weather").fetchall()
+    if supabase_stats.enabled():
+        raw=supabase_stats.call('rpc/depart_usage_stats', {'p_from':params[0],'p_to':params[1],'p_demo':-1 if mode=='all' else int(mode=='demo')})
+        starts,counts,beaches,popular,daily,funnel,context,schedule,trails=(raw[k] for k in ('starts','counts','beaches','popular','daily','funnel','context','schedule','trails'))
+    else:
+        with database() as q:
+            starts = q("SELECT COUNT(*) FROM events WHERE kind='start' AND " + window, params[:2]).fetchone()[0]
+            counts = dict(q("SELECT kind,count(*) FROM events WHERE " + condition + " AND kind<>'start' GROUP BY kind", params).fetchall())
+            beaches = q("SELECT beach,count(*) FROM events WHERE kind='plan_seen' AND " + condition + " GROUP BY beach ORDER BY count(*) DESC, beach", params).fetchall()
+            popular = q("SELECT poi_id,count(*) FROM events WHERE poi_id<>'' AND kind IN ('map_click','official_click') AND " + condition + " GROUP BY poi_id ORDER BY count(*) DESC, poi_id", params).fetchall()
+            daily = q("SELECT CAST((created_at + 32400)/86400 AS BIGINT), kind, count(*) FROM events WHERE " + condition + " AND kind<>'start' GROUP BY 1,2", params).fetchall()
+            funnel = q("WITH scoped AS (SELECT session_id,kind,created_at FROM events WHERE " + condition + """),
+                plans AS (SELECT session_id, MIN(created_at) first_view FROM scoped WHERE kind='plan_seen' GROUP BY session_id)
+                SELECT COUNT(*), COUNT(CASE WHEN EXISTS (SELECT 1 FROM scoped s WHERE s.session_id=p.session_id
+                  AND s.kind IN ('map_click','official_click') AND s.created_at>=p.first_view) THEN 1 END) FROM plans p""", params).fetchone()
+            context = q("SELECT start_hour,risk,car,count(*) FROM plan_context JOIN events ON events.id=event_id WHERE " + condition + " GROUP BY start_hour,risk,car ORDER BY start_hour,risk,car",params).fetchall()
+            schedule = q("SELECT travel_date,beach,start_hour,count(*),sum(CASE WHEN car=0 THEN 1 ELSE 0 END) FROM plan_context JOIN events ON events.id=event_id WHERE travel_date IS NOT NULL AND " + condition + " GROUP BY travel_date,beach,start_hour ORDER BY travel_date,start_hour,beach",params).fetchall()
+            trails = q("SELECT weather,count(*) FROM trail WHERE stops IS NOT NULL GROUP BY weather ORDER BY count(*) DESC, weather").fetchall()
     series = {(first+timedelta(days=i)).date().isoformat(): {"plan_seen":0,"map_click":0,"official_click":0} for i in range(days)}
     for epoch_day, kind, count in daily:
         day = (datetime(1970,1,1)+timedelta(days=epoch_day)).date().isoformat()

@@ -1,0 +1,135 @@
+{
+  "project": "GLAB",
+  "project_ref": "dhjpwzctrvnwlirmjwtu",
+  "catalog_records": 2572,
+  "source_records": 6407,
+  "private_bucket": "departner-source-bundle",
+  "files": [
+    {
+      "filename": "donghae-cafe-ratings-supplement.json",
+      "sha256": "d4c17fea87baab4604c5102cb311fe6926218967230567a950a9210e0e7d5da1",
+      "bytes": 54883,
+      "rows": 108,
+      "imported_at": "2026-11-20T14:54:42.976512+00:00"
+    },
+    {
+      "filename": "donghae-lodging-sources.zip",
+      "sha256": "2e21fb87c68b87cff569b6d5774cd943cacf95aedffd78be80911c8f2940c422",
+      "bytes": 64088,
+      "rows": 0,
+      "imported_at": "2026-11-20T14:54:44.062473+00:00"
+    },
+    {
+      "filename": "donghae-lodging.json",
+      "sha256": "f53b2f205a07bb07c0054e1ec9d474819522e244896a52d7dfe579745b96c77a",
+      "bytes": 847136,
+      "rows": 419,
+      "imported_at": "2026-11-20T14:54:48.732817+00:00"
+    },
+    {
+      "filename": "donghae_food_bars.json",
+      "sha256": "50493736d4b69634273cdb90bf1a4fd7ba925b99ec7e9a435e22f5744c83bc02",
+      "bytes": 260418,
+      "rows": 399,
+      "imported_at": "2026-11-20T14:54:52.415544+00:00"
+    },
+    {
+      "filename": "donghae_food_permits.json",
+      "sha256": "39ba37a5d558b8868bc19055b7b2dfa5a7a7dd6b156a83ef8f4ece3028bd1821",
+      "bytes": 2597505,
+      "rows": 2126,
+      "imported_at": "2026-11-20T14:55:03.184814+00:00"
+    },
+    {
+      "filename": "donghae_lodging_verified.json",
+      "sha256": "2a7ae5ae4591871a1fc32f8fcd6b75df9707d959d1d6f1227695e01540192f05",
+      "bytes": 65660,
+      "rows": 79,
+      "imported_at": "2026-11-20T14:55:03.955179+00:00"
+    },
+    {
+      "filename": "seaguard-catalog.json",
+      "sha256": "aafcb9d4f2e1720c4a5b95ff8b12e267b994fdc6d88b7f8f6bedd5e35c36225d",
+      "bytes": 3973593,
+      "rows": 1,
+      "imported_at": "2026-11-20T14:55:06.817669+00:00"
+    },
+    {
+      "filename": "seaguard-courses.csv",
+      "sha256": "faebaf03e12d41aa40c6ed2d7db8b35e5bd34ca1c1d88a05f499b8c7fd65d9e1",
+      "bytes": 2847,
+      "rows": 3,
+      "imported_at": "2026-11-20T14:55:07.53868+00:00"
+    },
+    {
+      "filename": "seaguard-donghae-attractions-review.md",
+      "sha256": "212425b61a6f2c8d8db4f2a1ad27ee59a00920835998cdaaeb77469975bf7df0",
+      "bytes": 27075,
+      "rows": 1,
+      "imported_at": "2026-11-20T14:55:08.429385+00:00"
+    },
+    {
+      "filename": "seaguard-donghae-attractions.csv",
+      "sha256": "ead9ea06894a59b033e17d27325ecc2e49821716107eca4dfb933a1450b77ade",
+      "bytes": 91203,
+      "rows": 149,
+      "imported_at": "2026-11-20T14:55:09.534011+00:00"
+    },
+    {
+      "filename": "seaguard-donghae-city-audit.csv",
+      "sha256": "6c088baf99a60b860c4e52ee462b345baf3cae8f321b635edbee20f056e4880e",
+      "bytes": 40530,
+      "rows": 86,
+      "imported_at": "2026-11-20T14:55:11.555339+00:00"
+    },
+    {
+      "filename": "seaguard-facilities.csv",
+      "sha256": "746f339b64f741a3186fa7290166075101d1e07bc510926e323650c4131c65df",
+      "bytes": 14741,
+      "rows": 6,
+      "imported_at": "2026-11-20T14:55:12.696891+00:00"
+    },
+    {
+      "filename": "seaguard-ratings.csv",
+      "sha256": "25cc0c1c3e78b09f48e5424aa819850fd4efecd961f163523a4f23a9692a8e9f",
+      "bytes": 195944,
+      "rows": 586,
+      "imported_at": "2026-11-20T14:55:15.457056+00:00"
+    },
+    {
+      "filename": "seaguard-recommend.mjs",
+      "sha256": "d700a672062a6080fec499aac2340abde14b38210b02c7aa18a3df50f48b8eb0",
+      "bytes": 4937,
+      "rows": 1,
+      "imported_at": "2026-11-20T14:55:16.502339+00:00"
+    },
+    {
+      "filename": "seaguard-recommendation-guide.md",
+      "sha256": "1b0993502c19978616bf47e56c978c1d330d08dd40a692576299266d2e90bb0f",
+      "bytes": 10220,
+      "rows": 1,
+      "imported_at": "2026-11-20T14:55:17.5038+00:00"
+    },
+    {
+      "filename": "seaguard-source-review.md",
+      "sha256": "4fad15b151bf1265ae07d3e71b84bd96abe393b3c26d1d1877ac514fa6cececb",
+      "bytes": 21518,
+      "rows": 1,
+      "imported_at": "2026-11-20T14:55:18.42205+00:00"
+    },
+    {
+      "filename": "seaguard-unlinked-menu-evidence.json",
+      "sha256": "b0706a7fa5c4d3bae80ecdcebf9289b96416cd3308792fd015acf621b82b6453",
+      "bytes": 15774,
+      "rows": 28,
+      "imported_at": "2026-11-20T14:55:19.119519+00:00"
+    },
+    {
+      "filename": "seaguard-venues.csv",
+      "sha256": "96b955b031c765d8ceca9aced7dc9d7e9fea4c4d841f221246ab53144409dce6",
+      "bytes": 1665742,
+      "rows": 2414,
+      "imported_at": "2026-11-20T14:55:28.544933+00:00"
+    }
+  ]
+}

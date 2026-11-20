@@ -1,4 +1,4 @@
-"""SeaGuard: transparent demonstration and model forecast risk advisory."""
+"""DePartner: transparent demonstration and model forecast risk advisory."""
 import asyncio
 import math
 import os
@@ -10,24 +10,31 @@ from typing import Literal
 import httpx
 from dotenv import load_dotenv
 
-# Local runs read backend/.env (Vercel uses its own env vars; existing values win).
+# Local settings override .env defaults; process/Vercel environment values win.
 # Skipped under unittest so tests never spend a real key.
 if "unittest" not in sys.modules:
+    load_dotenv(Path(__file__).resolve().parents[1] / ".env.local", override=False)
     load_dotenv(Path(__file__).resolve().parents[1] / ".env", override=False)
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
+from .catalog import router as catalog_router
+from .accounts import router as accounts_router
 from . import fishing
 from .analytics import router as analytics_router
+from .integrations import router as integrations_router
 from .ai import select_json
 from .course import router as course_router
 from .programs import router as programs_router
 from .guide import build_guide, CATALOG, ACTIVITY_ACTIONS
 
-app = FastAPI(title="SeaGuard AI", version="1.0.0")
+app = FastAPI(title="DePartner AI", version="1.0.0")
+app.include_router(catalog_router)
+app.include_router(accounts_router)
 app.include_router(programs_router)
 app.include_router(course_router)
 app.include_router(analytics_router)
+app.include_router(integrations_router)
 app.add_middleware(CORSMiddleware, allow_origins=os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173").split(","), allow_methods=["GET", "POST"], allow_headers=["*"])
 BEACHES = [
     {"id": "mangsang", "name": "망상", "latitude": 37.593, "longitude": 129.09, "description": "넓은 백사장과 탁 트인 동해"},
@@ -143,7 +150,7 @@ async def risk_data(beach_id, mode, with_ai=True):
         except (httpx.HTTPError, ValueError, KeyError, TypeError):
             raise HTTPException(503, detail={"code": "WEATHER_UNAVAILABLE", "message": "기상·해양 예보를 가져오지 못했거나 데이터가 불완전합니다. 다시 시도하거나 예시 모드를 직접 선택하세요."})
     result = analyze(values, 3600 if demo else interval)
-    return {"beach": beach, "values": values, "risk": result, "explanation": await explanation(values, result, demo) if with_ai else {"text": rule_explanation(result, demo), "source": "rules", "notice": None}, "meta": {"mode": mode, "is_demo": demo, "data_kind": "synthetic" if demo else "model_forecast", "source": "SeaGuard 고정 예시 시나리오" if demo else "Open-Meteo / DWD 및 제공 모델", "source_urls": [] if demo else ["https://open-meteo.com/en/docs", "https://open-meteo.com/en/docs/marine-weather-api"], "data_times": stamps, "retrieved_at": now(), "precipitation_interval_seconds": interval, "notice": "공식 경보·입수 허가·이안류 예측이 아닙니다. 현장 통제와 기상청 특보를 우선 확인하세요."}}
+    return {"beach": beach, "values": values, "risk": result, "explanation": await explanation(values, result, demo) if with_ai else {"text": rule_explanation(result, demo), "source": "rules", "notice": None}, "meta": {"mode": mode, "is_demo": demo, "data_kind": "synthetic" if demo else "model_forecast", "source": "DePartner 고정 예시 시나리오" if demo else "Open-Meteo / DWD 및 제공 모델", "source_urls": [] if demo else ["https://open-meteo.com/en/docs", "https://open-meteo.com/en/docs/marine-weather-api"], "data_times": stamps, "retrieved_at": now(), "precipitation_interval_seconds": interval, "notice": "공식 경보·입수 허가·이안류 예측이 아닙니다. 현장 통제와 기상청 특보를 우선 확인하세요."}}
 
 
 @app.get("/api/risk/{beach_id}")

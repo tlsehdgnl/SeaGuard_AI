@@ -1,4 +1,4 @@
-# SeaGuard AI · 동해 바다행동 안내
+# DePartner · 동해 바다행동 안내
 
 **바다를 확인하고, 오늘을 이어가세요.**
 
@@ -56,7 +56,7 @@ cd backend
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements.txt
-python -m uvicorn app.main:app --host 127.0.0.1 --port 8000
+python -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 Windows에서는 가상환경 활성화 대신 `.venv\Scripts\python.exe`로 명령을 실행할 수 있습니다.
@@ -87,7 +87,7 @@ OPENAI_MODEL=gpt-4.1-mini
 ```sh
 cd backend
 .venv/bin/python -m pip install -r requirements.txt
-.venv/bin/python -m uvicorn app.main:app --env-file .env.local --host 127.0.0.1 --port 8000
+.venv/bin/python -m uvicorn app.main:app --reload --env-file .env.local --host 127.0.0.1 --port 8000
 ```
 
 Vercel에서는 **백엔드 프로젝트 → Settings → Environment Variables**에 `OPENAI_API_KEY`와 `OPENAI_MODEL`을 추가하고 재배포합니다. `VITE_` 접두어나 프론트엔드 파일에 키를 넣지 마세요. 기존 `LLM_API_KEY`, `LLM_API_URL`, `LLM_MODEL`도 호환되며 `OPENAI_API_KEY` 설정이 우선합니다.
@@ -152,7 +152,7 @@ Git에 저장하지 않습니다. LJH `39be619`의 인증·기간/예보 필터�
 
 로컬은 SQLite를 사용합니다. `TRAIL_DB_PATH`를 지정하지 않으면
 `~/.seaguard/trails.sqlite3`에 저장됩니다. Vercel에서는 영속 PostgreSQL의
-`TRAIL_DATABASE_URL`과 백엔드 `ADMIN_TOKEN` 설정이 필요합니다.
+백엔드 `ADMIN_TOKEN`과 통계 저장소 설정이 필요합니다. 현재 GLAB은 `SUPABASE_URL`·`SUPABASE_SECRET_KEY`를 사용하며, 별도 PostgreSQL은 `TRAIL_DATABASE_URL`로 연결할 수 있습니다.
 기존 LJH의 `seaguard` 스키마를 재사용한다면 `SEAGUARD_PRIVATE_SCHEMA=1`을 유지하고
 **배포 전에** `backend/migrations/002_sdh_context.sql`을 적용해야 합니다.
 이는 SDH 미지정 값 때문에 기존 CHECK 제약에서 이벤트가 거부되는 것을 방지합니다.
@@ -171,3 +171,62 @@ Git에 저장하지 않습니다. LJH `39be619`의 인증·기간/예보 필터�
 `frontend/src/locales/en.json`이 영어 문구 사전이며 `i18n.js`가 React 렌더링 시
 텍스트와 접근성 라벨만 번역합니다. API 값·저장 데이터·지도 URL·통계 ID는 번역하지 않습니다.
 새 사용자 문구를 추가할 때 사전과 `frontend/tests/i18n.test.js`도 함께 확인하세요.
+
+로컬 개발에서는 `--reload`로 실행해야 낚시 등 새 활동을 추가할 때 실행 중인 API에도 반영됩니다. 환경변수는 프로세스 설정 → `backend/.env.local` → `backend/.env` 순으로 우선하며, 키를 수정한 뒤에는 서버를 재시작하세요. 낚시지수 키는 서버의 `FISHING_API_KEY`에 설정합니다.
+
+
+## DePartner 바다 시간 코스
+
+D(동해)에 파도·수평선을 담은 벡터 로고를 사용합니다. 방문 날짜(한국시간 오늘부터 6일 후), 출발/종료, 식사 조건을 입력하면 선택 해안의 시간별 파고·풍속·강수·뇌우·일출/일몰을 비교합니다. 바다 조망 40분을 예약한 뒤 선택 장소와 식사를 재배치하며 이동시간도 계산합니다. 식사 누락과 필수 장소 누락을 최소화한 후보 중 비교적 잔잔한 시간대를 고릅니다. 최단 경로 보장 알고리즘은 아닙니다.
+
+예보 미확인·조건에 맞는 시간 없음·현장 통제 시 바다 방문은 보류하고 나머지 일정을 보여줍니다. 화면의 현장 통제 체크는 사용자 확인값이며 공식 경보/통제 자동 연동은 아닙니다. 임계값은 공식 안전 기준이 아닌 육상 조망용 내부 계획 기준입니다. 수영/낚시 허가나 안전 판정을 제공하지 않습니다. 운영시간은 방문일 기준 사용자 입력이며 실시간 확인이 아닙니다.
+
+예보 출처: https://open-meteo.com/en/docs 및 https://open-meteo.com/en/docs/marine-weather-api . 내부 캐시는 10분이며 예보 조회 시각을 표시합니다. 기존 브라우저 저장 키와 통계 스키마 이름은 이전 계획 호환을 위해 유지합니다.
+
+
+## 키 설정과 Git
+
+실제 키는 `backend/.env.local`과 Vercel 백엔드 환경변수에 보관합니다. Git에서 제외되는 것이 정상이며, 커밋한다고 Vercel 환경변수가 지워지지 않습니다. `.env.example`은 예외 처리해 필요한 **변수 이름**이 저장소에 남도록 했습니다. 새 컴퓨터에서는 예시 파일을 복사해 값을 설정하세요. 기존 파일을 덮어쓰지 마세요.
+
+`backend/.venv/bin/python backend/check_config.py`로 OpenAI·관리자·낚시·통계 DB 설정의 유무를 확인할 수 있습니다. 키 값은 출력하지 않습니다. 배포 준비를 엄격하게 검사하려면 `--strict`를 추가하세요. Vercel 환경변수를 변경한 뒤에는 백엔드를 재배포해야 새 실행 환경에 반영됩니다.
+
+
+## 관리자 API 연결 대시보드
+
+`/admin`에서 관리자 키로 접속하면 통계 DB 상태와 독립적으로 API 연결 상태를 확인합니다. 관리자 인증, 활성 GPT 공급자(키/모델), 낚시지수, 기상 예보, 해양 예보, 도서관 일정, 통계 DB를 검사합니다. 기본 GPT 검사는 모델 목록 접근이며 생성 요청과 과금 한도를 보증하지 않습니다. 실제 응답 검사 선택 시 소량의 토큰을 사용합니다.
+
+관리자 전용 `POST /api/admin/integrations/check`는 키·DB URL·외부 오류 원문을 반환하지 않습니다. DB 검사는 기존 테이블 읽기만 수행합니다. 기상/해양은 망상 좌표로 데이터와 최신 시각을 검사하고, 외부 지도 링크는 포함하지 않습니다. 결과는 인스턴스 내부에서 30초 캐시되며 응답은 `Cache-Control: no-store`입니다. 환경변수 변경 시 캐시는 별도로 계산됩니다. 운영 DB 미설정은 다른 서비스 검사에 영향을 주지 않습니다.
+
+### main 자동 배포
+
+Vercel의 두 프로젝트를 `tlsehdgnl/SeaGuard_AI` GitHub 저장소에 연결했습니다.
+
+| 프로젝트 | Root Directory | 운영 브랜치 |
+| --- | --- | --- |
+| departner | frontend | main |
+| seaguard-api | backend | main |
+
+`main`에 커밋을 **push**하거나 PR을 병합하면 Vercel이 해당 소스를 빌드하고,
+성공한 배포를 운영 주소에 반영합니다. 로컬 커밋이나 저장만으로는 배포되지 않습니다.
+API 키는 기존 Vercel 환경변수를 사용하며 `.env` 파일을 Git에 추가할 필요가 없습니다.
+프로젝트 Root Directory가 설정되었으므로 수동 CLI 배포가 필요할 때도 저장소 루트에서
+프로젝트 ID를 지정하세요(하위 폴더를 업로드 루트로 다시 지정하지 않습니다).
+
+### GLAB 회원·저장·관광 자료 연결
+
+- Supabase 프로젝트: `GLAB` (`dhjpwzctrvnwlirmjwtu`). 서버 환경변수 `SUPABASE_URL`, `SUPABASE_SECRET_KEY` 사용. 키는 프론트엔드에 전달하지 않습니다.
+- `/login`: 아이디(영문·숫자·밑줄 4–24자), 비밀번호(8자 이상), 닉네임, 생년월일로 가입. 아이디는 대소문자를 구분하지 않습니다. Supabase Auth의 내부 식별용 `.invalid` 주소를 사용하며 실사용자 이메일은 수집하거나 인증했다고 주장하지 않습니다. 이메일 비밀번호 복구 기능은 제공하지 않습니다.
+- 가입 정보는 Supabase Auth가 관리하며, 생년월일은 공개 프로필/통계 API에 반환하지 않습니다. 비밀번호 원문을 별도 DB 테이블에 저장하지 않습니다.
+- 비회원 조건 저장은 기존 브라우저 저장소에만 보관합니다. 회원의 저장·조회·삭제는 소유자 RLS가 적용된 `depart_saved_plans`를 사용합니다. 비회원 원본은 로그인 후에도 유지하며, 사용자가 ‘이 기기 기록 가져오기’를 누를 때 계정으로 복사합니다. 같은 조건은 계정별 결정적 ID로 중복 저장하지 않습니다.
+- 인증 토큰은 HttpOnly/Secure/SameSite 쿠키(운영)로 보관하며 JS/localStorage로 전달하지 않습니다. 변경 요청 Origin 검증, DB 기반 로그인/가입 시도 제한, 계정 전환 시 저장 대상 검증을 적용했습니다.
+- 관광 자료: `depart_catalog` 2,572행(관광지 149, 업소 2,414, 시설 6, 코스 3), `depart_source_records` 6,407행, `depart_imports` 18개 파일 명세. 원본 18개 파일은 비공개 Storage `departner-source-bundle`에 보존합니다. ZIP/스크립트는 자료로만 보관하며 실행하지 않습니다.
+- `backend/data/donghae-import-manifest.json`에 파일별 SHA-256 및 수량 기록. 재적재는 `backend/scripts/import_donghae_bundle.py <폴더>`로 수행합니다(관리 서버 키 필요).
+- `/api/catalog`는 추가 장소 검색용 읽기 API입니다. 추천 보류(`hold`) 업소는 제외하며, 출처별 평점·조사 시점을 분리합니다. 자료의 영업상태는 현장 영업/안전 보증이 아닙니다. 이 자료를 기존 코스 후보에 무조건 합치지 않습니다.
+- `TRAIL_DATABASE_URL`이 없고 Supabase가 설정되면 익명 사용 통계는 GLAB `depart_events`와 서버 전용 `depart_usage_stats`를 사용합니다. 기존 DB가 있으면 기존 연결을 우선합니다. 로컬/LJH 과거 기록을 운영 통계에 임의 합산하지 않습니다.
+- SQL 변경은 `supabase/migrations`에 보관하며 GLAB SQL Editor로 적용했습니다. 모든 신규 테이블 RLS 활성화. 계정 저장 테이블 외 자료/통계 테이블과 집계 함수는 서버 역할에만 허용합니다.
+
+### 지진해일 대피장소 안내
+
+브리핑에서 선택 장소 또는 사용자가 요청한 현재 위치를 기준으로 동해시 등록 지진해일 대피장소를 직선거리순으로 표시합니다. 코스의 각 장소에서도 가까운 대피장소를 펼칠 수 있습니다. GPS 좌표는 서버에 저장하거나 전송하지 않으며 길찾기 링크에도 출발 GPS 좌표를 포함하지 않습니다. 위치 권한 거부·조회 실패 시 선택한 장소로 돌아갑니다.
+
+자료: 행정안전부 국민재난안전포털의 동해시 지진해일 대피장소 28곳, `frontend/src/shelters.json`에 출처·확인 시각·개별 수정 시각 기록. 일반 지진옥외대피소나 민방위대피소를 섞지 않습니다. `python3 frontend/scripts/update-shelters.py`로 공식 자료를 다시 받아 검증 후 갱신하고 프론트엔드를 재배포합니다. 자동 실시간 갱신이 아니며 실제 개방·수용 가능 여부, 통제, 공식 대피 경로는 확인하지 않습니다. 인접 시군구는 자료 범위 밖입니다. 좌표 미상 또는 15km 이내 등록 자료가 없으면 결과 대신 공식 지도 확인을 안내합니다.

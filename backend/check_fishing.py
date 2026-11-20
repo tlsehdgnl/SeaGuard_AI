@@ -9,6 +9,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+load_dotenv(Path(__file__).resolve().parent / ".env.local")
 load_dotenv(Path(__file__).resolve().parent / ".env")
 
 from app import fishing  # noqa: E402
@@ -17,7 +18,7 @@ from app import fishing  # noqa: E402
 async def main():
     key = os.getenv("FISHING_API_KEY")
     if not key:
-        print("[미설정] backend/.env 에 FISHING_API_KEY 가 없습니다.")
+        print("[미설정] backend/.env.local 또는 backend/.env 에 FISHING_API_KEY 가 없습니다.")
         return
     try:
         rows = await fishing.fetch_all()

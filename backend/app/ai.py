@@ -57,8 +57,8 @@ async def select_json(payload, instruction):
             response = await client.post(endpoint, headers={"Authorization": f"Bearer {key}"},
                                          json=request_body(model, instruction, payload))
         if response.is_error:
-            # Status and provider message only; never the key. Shows up in uvicorn / Vercel logs.
-            log.warning("LLM %s returned %s: %s", model, response.status_code, response.text[:300])
+            # Provider errors may echo credential fragments; never log their raw body.
+            log.warning("LLM %s returned HTTP %s", model, response.status_code)
         response.raise_for_status()
         raw = response.json()["choices"][0]["message"]["content"]
         if not isinstance(raw, str) or len(raw) > 10000:

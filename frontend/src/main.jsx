@@ -1,3 +1,7 @@
+import { ShelterFinder } from "./ShelterFinder.jsx";
+import { CatalogBrowser } from "./CatalogBrowser.jsx";
+import { AccountProvider, AccountPage, useAccount } from "./Account.jsx";
+import { JourneyGuide } from "./JourneyGuide.jsx";
 import { MyPage } from "./MyPage.jsx";
 import { listPlans, savePlan, PLAN_PREFIX } from "./savedPlans.js";
 import { CoursePlanner } from "./CoursePlanner.jsx";
@@ -280,6 +284,7 @@ function Outlook({beach, mode}) {
 }
 const STEPS = ["방문지 선택", "활동 선택", "바다 브리핑", "주변 활동", "저장·공유"];
 function App() {
+  const account = useAccount();
   const {language} = useLanguage();
   const [entering, setEntering] = useState(false);
   const entryTimer = useRef(null);
@@ -291,7 +296,7 @@ function App() {
     setEntering(true);
     entryTimer.current = setTimeout(() => {setStarted(true); setEntering(false); go(0);}, reduced ? 0 : 950);
   }
-  const [started, setStarted] = useState(() => new URLSearchParams(location.hash.slice(1)).has("beach"));
+  const [started, setStarted] = useState(() => new URLSearchParams(location.hash.slice(1)).has("beach") || new URLSearchParams(location.search).has("mypage"));
   const trackedPlan = useRef("");
   const [step, setStep] = useState(() => new URLSearchParams(location.hash.slice(1)).has("beach") ? 2 : 0);
   const flowHeading = useRef(null);
@@ -307,7 +312,7 @@ function App() {
     });
   }
   const [plans, setPlans] = useState(() => listPlans(storage()));
-  const [myPage, setMyPage] = useState(false);
+  const [myPage, setMyPage] = useState(() => new URLSearchParams(location.search).has("mypage"));
   function showMyPage(open) {
     setMessage("");
     setMyPage(open);
@@ -474,14 +479,25 @@ function App() {
     if (profile.activity.length > 1) return change("activity", profile.activity.filter(item => item !== key));
     setMessage("활동을 하나 이상 선택해 주세요.");
   }
-  function save() {
+  async function save() {
+    if (!account.ready || account.error) {setMessage("로그인 상태를 확인한 후 다시 저장해 주세요."); return;}
+    if (account.user) {
+      try {await account.saveCloud([profile]);setMessage("계정에 저장했어요. 다른 기기에서도 볼 수 있어요.");}
+      catch(error) {setMessage(error.message);}
+      return;
+    }
     try {
       savePlan(storage(), profile);
       setPlans(listPlans(storage()));
       setMessage("마이페이지에 계획을 저장했어요.");
     } catch { setMessage("이 브라우저에 저장할 수 없어요. 공유 링크로 조건을 보관해 주세요."); }
   }
-  function deleteSaved(key) {
+  async function deleteSaved(key) {
+    if (account.user) {
+      try {await account.deleteCloud(key);setMessage("계획을 삭제했어요.");}
+      catch(error) {setMessage(error.message);}
+      return;
+    }
     try {
       storage().removeItem(key);
       setPlans(listPlans(storage()));
@@ -558,8 +574,9 @@ function App() {
   if (!started) return <main className={`horizon${entering ? " is-entering" : ""}`} aria-busy={entering}>
     <div className="horizon-ocean" aria-hidden="true"/>
     <LanguageSwitch className="landing-language"/>
+    <a className="landing-account" href={account.user?"/?mypage=1":"/login"}>{account.user ? (language==="en"?"My account":"내 계정") : (language==="en"?"Sign in / Join":"로그인 / 회원가입")}</a>
     <a className="landing-admin" href="/admin">관리자 통계 보기</a>
-    <div className="landing-copy"><h1>동해로 여행을<br/>떠나볼까요?</h1>
+    <div className="landing-copy"><div className="landing-brand"><img src="/departner-mark.svg" alt=""/><span><b>D</b>ePartner</span></div><p className="landing-purpose">바다를 만나는 시간까지, 동해 여행의 파트너</p><h1>동해로 여행을<br/>떠나볼까요?</h1>
       <button className="journey-start" disabled={entering} onClick={startJourney}>여행 시작하기 <span aria-hidden="true">→</span></button>
     </div>
   </main>;
@@ -571,20 +588,21 @@ function App() {
       </a>
       <header>
         <a className="brand" href="/">
-          ≈{" "}
+          <img src="/departner-mark.svg" alt="" className="departner-mark"/>
           <span>
-            SeaGuard <b>AI</b>
+            <b>D</b>ePartner
           </span>
         </a>
-        <div className="header-tools"><LanguageSwitch/><a className="admin-link" href="/admin">관리자 통계</a><span className="location">
+        <div className="header-tools"><LanguageSwitch/><a className="header-account" href={account.user?"/?mypage=1":"/login"}>{account.user?account.user.nickname:(language==="en"?"Sign in":"로그인")}</a><a className="admin-link" href="/admin">관리자 통계</a><span className="location">
           동해 바다행동 안내 <span className="dot">●</span>
         </span><button onClick={() => showMyPage(!myPage)}>{myPage ? "여행 계획" : "마이페이지"}</button></div>
       </header>
       <main id="content">
-        {myPage ? <MyPage plans={plans} onOpen={openSaved} onDelete={deleteSaved} onBack={() => showMyPage(false)} headingRef={flowHeading} message={message} /> : <>
+        {myPage ? <MyPage plans={account.user ? account.cloudPlans : plans} localPlans={plans} onOpen={openSaved} onDelete={deleteSaved} onBack={() => showMyPage(false)} headingRef={flowHeading} message={message} /> : <>
         <div className="step-head">
-          <div className="step-meta"><span>여행 준비 · {step+1} / {STEPS.length}</span>{step>0 && <button onClick={()=>go(step-1)}>← 이전</button>}</div>
+          <div className="step-meta"><span>여행 준비 · {step+1} / {STEPS.length}</span><button onClick={()=>{if(step>0)go(step-1);else{setStarted(false);setEntering(false);entryTimer.current=null;}}}>← 뒤로가기</button></div>
           <h1 ref={flowHeading} tabIndex={-1}>{["어느 해변이나 항구에 가시나요?", "무엇을 하고 싶으세요?", beachName+" 방문 브리핑", beachName+" 주변에서 할 일", "이 계획을 다시 볼까요?"][step]}</h1>
+          <JourneyGuide key={step} step={step}/>
           {step>0 && <p>{beachName} · {activityNames}{profile.children?" · 어린이 동반":""} · {profile.mode==="demo"?"예시 데이터":"모델 예보"}</p>}
         </div>
         {step===0 && <>
@@ -699,6 +717,7 @@ function App() {
               ]}
             />
         </div>
+        <ShelterFinder key={beachName} name={beachName} />
         {error ? (
           <section className="error" role="alert">
             <h2>정보 확인 필요</h2>
@@ -964,6 +983,7 @@ function App() {
             </section>
           </>
         )}
+        <CatalogBrowser/>
         {!data && <p role="status">{error || "지역 활동을 확인하고 있어요…"}</p>}
         </>}
         {step===4 && <>
@@ -972,7 +992,7 @@ function App() {
         <section id="save-plan" className="card plan"><h2>조건 저장 · 공유</h2>
           <div className="toolbar">
             <button onClick={save}>☆ 조건 저장</button>
-            <button onClick={() => showMyPage(true)}>저장한 계획 보기 ({plans.length})</button>
+            <button onClick={() => showMyPage(true)}>저장한 계획 보기 ({account.user ? account.cloudPlans.length : plans.length})</button>
             <button
               ref={shareButton}
               aria-expanded={share}
@@ -1054,7 +1074,7 @@ function App() {
         </div>
         </>}
         <footer>
-          <span>SeaGuard AI · 동해 바다행동 안내</span>
+          <span>DePartner · 동해 바다행동 안내</span>
           <span>정보 확인 → 행동 이해 → 지역 대안 선택</span>
         </footer>
       </main>
@@ -1155,4 +1175,4 @@ function Place({ place, onFeedback, selected, onToggle }) {
     </article>
   );
 }
-createRoot(document.getElementById("root")).render(<LanguageProvider>{["/admin", "/admin/"].includes(location.pathname) ? <Admin /> : <App />}</LanguageProvider>);
+createRoot(document.getElementById("root")).render(<LanguageProvider><AccountProvider>{["/admin", "/admin/"].includes(location.pathname) ? <Admin /> : ["/login", "/login/"].includes(location.pathname) ? <AccountPage/> : <App />}</AccountProvider></LanguageProvider>);

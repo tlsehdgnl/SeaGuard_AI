@@ -75,3 +75,17 @@ export default function CityStats({data:d}) {
     <Bars title="날씨별 방문 동선 완료" rows={d.trails} note="LJH에서 수집한 기존 완료 동선입니다. 전체 기간·전체 예보 기준이며 SDH의 링크 확인은 방문 완료로 집계하지 않습니다."/></div>
   </>;
 }
+
+
+export function StatsUnavailable({loading}) {
+  const {language} = useLanguage();
+  const en = language === 'en';
+  const status = loading ? (en ? 'Loading statistics…' : '통계를 불러오는 중입니다…') : (en ? 'Data unavailable · check the statistics database connection.' : '조회 불가 · 통계 저장소 연결을 확인해 주세요.');
+  const metrics = en ? ['Plan views', 'Link click-through rate', 'Most-viewed beach share', 'Plans without a car'] : ['추천 일정 조회', '조회 후 링크 클릭률', '최다 조회 해변 점유율', '차량 없는 일정 비중'];
+  const panels = en ? ['Daily plan views and link clicks', 'Actions after viewing a plan', 'Plan demand by beach', 'Departure time × marine/weather signals', 'Beach demand by planned travel date', 'Place interest rankings', 'Completed routes by weather'] : ['일별 일정 조회와 링크 클릭', '일정 조회 후 행동', '해변별 계획 수요', '예정 출발 시간 × 해양·기상 신호', '여행 예정일별 해변 수요', '관광지 관심 순위', '날씨별 방문 동선 완료'];
+  return <div className="stats-unavailable" aria-busy={loading}>
+    <div className="reportRange"><p role="status">{status}</p><button disabled>{en ? 'Export summary CSV ↓' : '집계 CSV 내려받기 ↓'}</button></div>
+    <div className="adminMetrics">{metrics.map(title=><div key={title}><span>{title}</span><strong>—</strong><small>{en ? 'Awaiting data' : '데이터 확인 필요'}</small></div>)}</div>
+    <div className="adminGrid">{panels.map(title=><section className="adminPanel" key={title}><h2>{title}</h2><p>{status}</p><div className="stats-placeholder" aria-hidden="true">—</div></section>)}</div>
+  </div>;
+}

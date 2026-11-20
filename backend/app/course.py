@@ -1,4 +1,6 @@
 import math
+from datetime import date, datetime, timedelta
+from .coastal import day_forecast, viewing_slots, KST
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field, model_validator
@@ -16,11 +18,14 @@ class Stop(BaseModel):
     required: bool = False
     point: tuple[float, float] | None = None
     meal: bool = False
+    coastal: bool = False
     duration: int = Field(default=40, ge=10, le=240)
     windows: list[tuple[int, int]] | None = Field(default=None, max_length=4)
 
     @model_validator(mode="after")
     def validate_windows(self):
+        if self.coastal and self.duration > 60:
+            raise ValueError("Sea visits must fit one hourly forecast interval")
         if self.windows is not None and any(not 0 <= a < b <= 1440 for a, b in self.windows):
             raise ValueError("Invalid opening interval")
         if self.point and not (-90 <= self.point[0] <= 90 and -180 <= self.point[1] <= 180):
@@ -41,6 +46,10 @@ class Course(BaseModel):
     meal_times: list[int] = Field(default_factory=list, max_length=3)
     transport: Literal["walk", "car", "transit"] = "walk"
     language: Literal["ko", "en"] = "ko"
+    beach_id: str | None = Field(default=None,max_length=40)
+    visit_date: date | None = None
+    mode: Literal["demo", "forecast"] = "forecast"
+    coastal_closed: bool = False
 
     @model_validator(mode="after")
     def validate_times(self):
@@ -50,6 +59,8 @@ class Course(BaseModel):
             raise ValueError("Meal times must be within the trip")
         if len(set(self.meal_times)) != len(self.meal_times):
             raise ValueError("Duplicate meal times")
+        if self.visit_date and not datetime.now(KST).date() <= self.visit_date <= datetime.now(KST).date()+timedelta(days=6):
+            raise ValueError("Visit date must be within the next seven days")
         return self
 
 
@@ -89,11 +100,12 @@ def schedule(course, priority):
     now, point = course.start_minute, course.origin
     meals = sorted(course.meal_times)
     timeline, skipped = [], []
-    def travel(stop):
-        if not point or not stop.point:
+    def travel(stop, from_point=None):
+        source = point if from_point is None else from_point
+        if not source or not stop.point:
             return 20, None
-        lat = math.radians((point[0] + stop.point[0]) / 2)
-        km = 111.2 * math.hypot(point[0]-stop.point[0], (point[1]-stop.point[1])*math.cos(lat))
+        lat = math.radians((source[0] + stop.point[0]) / 2)
+        km = 111.2 * math.hypot(source[0]-stop.point[0], (source[1]-stop.point[1])*math.cos(lat))
         return max(1, math.ceil(km * 1.3 / {"walk":4, "car":30, "transit":18}[course.transport] * 60)) + (5 if course.transport != "walk" else 0), round(km, 2)
     while remaining:
         options = []
@@ -115,13 +127,19 @@ def schedule(course, priority):
                 # Avoid filling the next meal window with sightseeing.
                 if not stop.meal and meals and end > meals[0] and any(course.candidates[j].meal for j in remaining):
                     continue
-                options.append((begin + rank * 2, i, begin, end, minutes, km))
+                reserved = next((course.candidates[j] for j in remaining if course.candidates[j].coastal and course.candidates[j].windows), None)
+                if not stop.coastal and reserved:
+                    sea_start = reserved.windows[0][0]
+                    transfer, _ = travel(reserved, stop.point)
+                    if end + transfer > sea_start:
+                        continue
+                options.append((begin + rank * 2 - (5 if stop.required else 0), i, begin, end, minutes, km))
                 break
         if not options:
             break
         _, i, begin, end, minutes, km = min(options)
         stop = course.candidates[i]
-        timeline.append({"id":i,"arrival":begin,"departure":end,"travel_minutes":minutes,"distance_km":km,"hours_known":stop.windows is not None,"meal":stop.meal})
+        timeline.append({"id":i,"arrival":begin,"departure":end,"travel_minutes":minutes,"distance_km":km,"hours_known":stop.windows is not None,"meal":stop.meal,"coastal":stop.coastal})
         if stop.meal:
             meals.pop(0)
         now, point = end, stop.point
@@ -141,13 +159,66 @@ class Conversation(BaseModel):
     current_order: list[int] = Field(default_factory=list, max_length=150)
 
 
+async def prepare_coast(course):
+    indices=[i for i,s in enumerate(course.candidates) if s.coastal]
+    if not indices: return None, []
+    info={'status':'unavailable','date':str(course.visit_date or datetime.now(KST).date()),'selected':None,'alternatives':[], 'is_demo':course.mode=='demo'}
+    if course.coastal_closed:
+        info['status']='closed'; return info,[]
+    from .main import BEACHES
+    beach=next((b for b in BEACHES if b['id']==course.beach_id),None)
+    if not beach or len(indices)!=1: return info,[]
+    try:
+        forecast=await day_forecast(beach,info['date'],course.mode)
+        info.update({k:v for k,v in forecast.items() if k!='points'})
+        info['points']=forecast['points']
+        now=datetime.now(KST)
+        now_minute=now.hour*60+now.minute if info['date']==str(now.date()) and course.mode!='demo' else 0
+        slots=viewing_slots(forecast['points'],course.start_minute,course.end_minute,course.candidates[indices[0]].duration,now_minute)
+        info['status']='candidates' if slots else 'no_window'
+        return info,slots
+    except Exception:
+        # Never fill missing observations with invented calm conditions.
+        return info,[]
+
+
+def schedule_with_coast(course, ordered, info, slots):
+    if info is None: return schedule(course,ordered)
+    indices=[i for i,s in enumerate(course.candidates) if s.coastal]
+    trials=[]
+    for slot in slots:
+        candidate=course.model_copy(deep=True)
+        for i in indices:
+            candidate.candidates[i].windows=[(slot['minute'],slot['minute']+candidate.candidates[i].duration)]
+        result=schedule(candidate,ordered)
+        if not all(i in result['order'] for i in indices): continue
+        missed=sum(course.candidates[i].required for i in result['skipped'])
+        cost=(result['missing_meals'],missed,slot['score'],sum(r['travel_minutes'] for r in result['timeline']))
+        trials.append((cost,result,slot))
+    info=dict(info)
+    if trials:
+        trials.sort(key=lambda x:x[0])
+        _,answer,chosen=trials[0]
+        info.update(status='scheduled',selected=chosen,alternatives=[t[2] for t in trials[1:4]])
+    else:
+        candidate=course.model_copy(deep=True)
+        for i in indices: candidate.candidates[i].windows=[]
+        answer=schedule(candidate,ordered)
+        if slots: info['status']='conflict'
+    answer['sea_plan']=info
+    return answer
+
+
 async def generate(course, messages=None, current_order=None):
     required = [i for i,s in enumerate(course.candidates) if s.required]
     optional = [i for i,s in enumerate(course.candidates) if not s.required]
     visits = required + optional[:course.extras]
     # Include enough available restaurant choices to satisfy requested meals.
     visits += [i for i in optional if course.candidates[i].meal and i not in visits][:len(course.meal_times)]
-    payload = course.model_dump()
+    sea_info, slots = await prepare_coast(course)
+    payload = course.model_dump(mode="json")
+    payload["coastal_forecast"] = sea_info
+    payload["viewing_candidates"] = slots
     payload["stops"] = [{"id":i, **course.candidates[i].model_dump()} for i in visits]
     payload.pop("candidates")
     if messages:
@@ -168,7 +239,7 @@ async def generate(course, messages=None, current_order=None):
     ordered = valid + [i for i in visits if i not in valid]
     if not valid:
         ordered = improve_distance(course, ordered)
-    answer = schedule(course, ordered)
+    answer = schedule_with_coast(course, ordered, sea_info, slots)
     answer.update(source="ai" if valid else "basic", ai_status=status)
     if messages:
         reply = result.get("reply")

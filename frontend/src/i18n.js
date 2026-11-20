@@ -9,7 +9,7 @@ export function LanguageProvider({children}) {
   });
   useEffect(() => {
     document.documentElement.lang = language;
-    document.title = language === 'en' ? 'SeaGuard AI · Donghae Travel Guide' : 'SeaGuard AI · 동해 바다행동 안내';
+    document.title = language === 'en' ? 'DePartner · Donghae Travel Guide' : 'DePartner · 동해 바다행동 안내';
     try { localStorage.setItem(STORAGE_KEY, language); } catch { /* Language switching still works. */ }
   }, [language]);
   return React.createElement(LanguageContext.Provider, {value:{language, setLanguage}}, children);

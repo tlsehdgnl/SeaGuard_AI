@@ -114,10 +114,10 @@ body::after {
 }
 .landing-admin:hover, .landing-language:hover { background: rgb(255 255 255 / .26) !important; transform: translateY(-1px); }
 
-/* ── Floating glass header ─────────────────────────────────── */
+/* ── Page-top glass header ─────────────────────────────────── */
 .journey-app { display: flow-root; } /* keep header margin inside (no top strip) */
 .journey-app > header {
-  position: sticky; top: 12px; z-index: 30;
+  position: relative; z-index: 30;
   margin: 12px auto 0; width: calc(100% - 32px);
   border-radius: 999px; border: 1px solid var(--glass-line);
   background: rgb(246 250 252 / .62);
