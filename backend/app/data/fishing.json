@@ -1,0 +1,90 @@
+{
+  "version": "2026-11-20",
+  "status": "draft",
+  "note": "포인트 명칭·좌표는 팀 검증 전 초안입니다(verified=false). 어종·낚시지수는 바다낚시 API 연결 후 API 값으로 표시합니다.",
+  "spot_radius_km": 0.8,
+  "nearby_radius_km": 6,
+  "spots": [
+    {
+      "id": "mukho-port",
+      "name": "묵호항 방파제 일대",
+      "kind": "항구·방파제",
+      "latitude": 37.552,
+      "longitude": 129.1155,
+      "verified": false
+    },
+    {
+      "id": "eodal-port",
+      "name": "어달항 일대",
+      "kind": "항구",
+      "latitude": 37.5615,
+      "longitude": 129.1205,
+      "verified": false
+    },
+    {
+      "id": "daejin-port",
+      "name": "대진항 일대",
+      "kind": "항구",
+      "latitude": 37.579,
+      "longitude": 129.112,
+      "verified": false
+    },
+    {
+      "id": "cheongok-port",
+      "name": "천곡항 일대",
+      "kind": "항구",
+      "latitude": 37.5261,
+      "longitude": 129.1238,
+      "verified": false
+    },
+    {
+      "id": "chuam-rocks",
+      "name": "추암 갯바위 일대",
+      "kind": "갯바위",
+      "latitude": 37.477,
+      "longitude": 129.1615,
+      "verified": false
+    }
+  ],
+  "demo_index": {
+    "mukho-port": {
+      "index": "보통",
+      "fish": [
+        "학꽁치",
+        "가자미"
+      ]
+    },
+    "eodal-port": {
+      "index": "좋음",
+      "fish": [
+        "가자미",
+        "놀래기"
+      ]
+    },
+    "daejin-port": {
+      "index": "보통",
+      "fish": [
+        "학꽁치"
+      ]
+    },
+    "cheongok-port": {
+      "index": "좋음",
+      "fish": [
+        "놀래기"
+      ]
+    },
+    "chuam-rocks": {
+      "index": "나쁨",
+      "fish": [
+        "감성돔"
+      ]
+    }
+  },
+  "rules": [
+    "테트라포드(삼발이) 위는 추락 위험이 커요. 출입통제 구역에서는 낚시하지 마세요.",
+    "구명조끼와 미끄럼 방지 신발을 착용하고, 가능하면 2명 이상 함께하세요.",
+    "갯바위·방파제에 파도가 넘치기 시작하면 즉시 물러나세요.",
+    "낚시 금지구역·금어기·포획 금지 크기는 해양수산부·지자체 안내를 확인하세요."
+  ],
+  "local_radius_km": 35
+}

@@ -386,7 +386,7 @@ body::after {
   .journey-app.step-1 #activity > .quick-row { grid-column: 1; grid-row: 3; }
   .journey-app.step-1 #activity > h3 { grid-column: 2; grid-row: 1; margin-top: 0; }
   .journey-app.step-1 #activity > .form-grid { grid-column: 2; grid-row: 2 / span 2; grid-template-columns: 1fr; gap: 10px; }
-  .journey-app.step-1 .activity-postcards { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .journey-app.step-1 .activity-postcards { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 
   /* Step 3 briefing — two columns with equal-height rows:
      [weather + numbers | actions]  /  [hourly outlook | official links] */
@@ -612,3 +612,147 @@ body::after {
   *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
 }
+
+/* ── Fishing ───────────────────────────────────────────────── */
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+/* activity postcards: 3 × 3 with SVG art */
+.journey-app #activity .activity-postcards { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+.journey-app .activity-postcards button { position: relative; }
+.journey-app .activity-postcards .postcard-art {
+  display: block; aspect-ratio: 2; background: linear-gradient(165deg, #fdf6ea, #eef7f9) !important;
+  transition: background .4s;
+}
+.journey-app .activity-postcards .activity-art { display: block; width: 100%; height: 100%; }
+.journey-app .activity-postcards button[aria-pressed="true"] .postcard-art { background: linear-gradient(165deg, #fff8ee, #e3f4f7) !important; }
+/* fishing card tinted by current sea safety */
+.journey-app .activity-postcards .fish-good .postcard-art { background: linear-gradient(165deg, #e6f8ec, #d3f0de) !important; }
+.journey-app .activity-postcards .fish-caution .postcard-art { background: linear-gradient(165deg, #fff4dc, #ffe7bf) !important; }
+.journey-app .activity-postcards .fish-danger .postcard-art { background: linear-gradient(165deg, #ffe9e4, #ffd3c8) !important; }
+.journey-app .fish-bubble {
+  position: absolute; top: 8px; left: 8px; z-index: 2; max-width: calc(100% - 46px);
+  padding: 4px 9px; border-radius: 10px 10px 10px 3px; font-size: 11px; font-weight: 750; line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  box-shadow: 0 4px 12px -4px rgb(20 42 62 / .3); animation: bubble-in .6s var(--spring) .2s both, bubble-bob 3s ease-in-out 1s infinite;
+}
+.journey-app .fish-good .fish-bubble { background: #12a150; color: #fff; }
+.journey-app .fish-caution .fish-bubble { background: #f2a516; color: #3d2a00; }
+.journey-app .fish-danger .fish-bubble { background: #e0533a; color: #fff; }
+@keyframes bubble-in { from { opacity: 0; transform: translateY(6px) scale(.8); } }
+@keyframes bubble-bob { 50% { transform: translateY(-2px); } }
+/* destination badges */
+.journey-app .fish-dot { margin-left: 4px; font-size: 12px; filter: saturate(1.2); }
+.journey-app .beach-intro { position: relative; }
+.journey-app .fish-badge {
+  position: absolute; top: 14px; left: 14px; z-index: 2; padding: 7px 13px; border-radius: 999px;
+  font-size: 13px; font-weight: 700; color: #0b5a63; background: rgb(255 255 255 / .82);
+  border: 1px solid rgb(255 255 255 / .95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 6px 18px -6px rgb(10 50 70 / .35); animation: bubble-in .6s var(--spring) .35s both;
+}
+/* briefing panel */
+.journey-app .fishing { padding: 20px 22px !important; }
+.journey-app .fishing-head { display: grid; grid-template-columns: auto 1fr; gap: 14px 16px; align-items: center; }
+.journey-app .fishing-icon { width: 72px; aspect-ratio: 2; border-radius: 14px; overflow: hidden; background: linear-gradient(165deg, #fdf6ea, #e3f4f7); }
+.journey-app .fishing-icon svg { display: block; width: 100%; height: 100%; }
+.journey-app .fishing h2 { margin: 0; font-size: 20px; letter-spacing: -.03em; }
+.journey-app .fishing-sub { margin: 2px 0 0; font-size: 13px; color: #5b6f80; }
+.journey-app .fishing-signal { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 2px; padding: 12px 16px; border-radius: 14px; }
+.journey-app .fishing-signal strong { font-size: 16px; }
+.journey-app .fishing-signal span { font-size: 13px; }
+.journey-app .fish-good .fishing-signal { background: #e6f8ec; color: #0b6b35; }
+.journey-app .fish-caution .fishing-signal { background: #fff4dc; color: #7a5300; }
+.journey-app .fish-danger .fishing-signal { background: #ffe9e4; color: #a33520; }
+.journey-app .fish-unknown .fishing-signal { background: #eef2f5; color: #4a5d6c; }
+.journey-app .fishing-body { display: grid; gap: 18px; margin-top: 14px; }
+.journey-app .fishing h3 { margin: 4px 0 8px; font-size: 15px; }
+.journey-app .fishing-spots ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.journey-app .fishing-spots li { padding: 10px 14px; border-radius: 14px; border: 1px solid rgb(20 42 62 / .08); background: rgb(255 255 255 / .85); }
+.journey-app .spot-top { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.journey-app .spot-top strong { font-size: 14.5px; }
+.journey-app .spot-kind { font-size: 12px; color: #6d7f8e; }
+.journey-app .spot-index { margin-left: auto; font-size: 11px; font-weight: 750; padding: 3px 8px; border-radius: 999px; background: #eef2f5; color: #4a5d6c; }
+.journey-app .spot-index.idx-good { background: #e6f8ec; color: #0b6b35; }
+.journey-app .spot-index.idx-normal { background: #e8f3fb; color: #1d5a80; }
+.journey-app .spot-index.idx-bad { background: #ffe9e4; color: #a33520; }
+.journey-app .fishing-spots li p { margin: 4px 0 8px; font-size: 12.5px; color: #4b6275; }
+.journey-app .fishing-rules { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.55; }
+.journey-app .fishing-rules li { margin: 4px 0; }
+.journey-app .fishing-side .pill-link { margin-bottom: 10px; }
+@media (min-width: 900px) {
+  .journey-app .fishing-head { grid-template-columns: auto minmax(0, 1fr) minmax(0, 1.1fr); }
+  .journey-app .fishing-signal { grid-column: auto; }
+  .journey-app .fishing-body { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+  .journey-app .fishing-spots ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .journey-app .fish-bubble { left: 6px; right: 34px; max-width: none; white-space: normal; overflow: visible; font-size: 10.5px; padding: 3px 7px; }
+}
+.journey-app .fishing h3 small { font-size: 11.5px; font-weight: 500; color: #6d7f8e; margin-left: 6px; }
+.journey-app .fishing-ref { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 8px; }
+.journey-app .fishing-ref li { padding: 10px 14px; border-radius: 14px; border: 1px dashed rgb(15 143 154 / .35); background: rgb(240 250 251 / .8); }
+.journey-app .fishing-ref li p { margin: 4px 0 0; font-size: 12.5px; color: #4b6275; }
+
+/* ── Fishing analysis ──────────────────────────────────────── */
+.journey-app .fishing-h { margin: 18px 0 10px !important; font-size: 15.5px !important; letter-spacing: -.02em; }
+.journey-app .spot-index.idx-best { background: linear-gradient(120deg, #0fa968, #12b886); color: #fff; }
+.journey-app .spot-index.idx-worst { background: #ffd9d0; color: #9b2a14; }
+.journey-app .best-spots { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.journey-app .best-spot {
+  position: relative; padding: 14px 16px 14px 56px; border-radius: 18px; background: rgb(255 255 255 / .9);
+  border: 1px solid rgb(20 42 62 / .08); box-shadow: var(--shadow-soft);
+  transition: transform .5s var(--spring), box-shadow .3s; animation: rise-in .6s var(--ease-out) both;
+}
+.journey-app .best-spot:nth-child(2) { animation-delay: .08s; } .journey-app .best-spot:nth-child(3) { animation-delay: .16s; }
+.journey-app .best-spot:hover { transform: translateY(-3px); box-shadow: var(--shadow-lift); }
+.journey-app .best-spot.rank-1 { background: linear-gradient(150deg, #fffaf0, #fff 60%); border-color: rgb(240 180 80 / .5); }
+.journey-app .best-rank {
+  position: absolute; left: 14px; top: 14px; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px;
+  font-weight: 800; font-size: 15px; color: #fff; background: linear-gradient(140deg, var(--navy), var(--sea));
+}
+.journey-app .rank-1 .best-rank { background: linear-gradient(140deg, #f2a516, #ff8a4c); box-shadow: 0 6px 14px -6px rgb(240 140 40 / .8); }
+.journey-app .best-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.journey-app .best-top strong { font-size: 16px; }
+.journey-app .best-when { margin: 3px 0 6px; font-size: 13px; font-weight: 650; color: var(--sea); }
+.journey-app .best-fish { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; }
+.journey-app .best-fish span { font-size: 12.5px; font-weight: 650; padding: 4px 9px; border-radius: 999px; background: #eaf6f8; color: #135f6c; }
+.journey-app .best-sea { margin: 0 0 8px; font-size: 12px; color: #6d7f8e; }
+.journey-app .fish-week { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+.journey-app .fish-week li { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 9px 4px; border-radius: 14px; text-align: center; background: #eef2f5; color: #4a5d6c; min-width: 0; }
+.journey-app .fish-week .fw-day { font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.journey-app .fish-week .fw-index { font-size: 13px; font-weight: 800; }
+.journey-app .fish-week .fw-point { font-size: 10.5px; opacity: .8; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.journey-app .fish-week .idx-best { background: linear-gradient(160deg, #0fa968, #12b886); color: #fff; }
+.journey-app .fish-week .idx-good { background: #dff5e7; color: #0b6b35; }
+.journey-app .fish-week .idx-normal { background: #e5f0f8; color: #1d5a80; }
+.journey-app .fish-week .idx-bad { background: #ffeee9; color: #a33520; }
+.journey-app .fish-week .idx-worst { background: #ffd9d0; color: #9b2a14; }
+.journey-app .fishing-cols { display: grid; gap: 4px 22px; }
+.journey-app .fish-species { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.journey-app .fish-species li { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; background: rgb(255 255 255 / .85); border: 1px solid rgb(20 42 62 / .07); }
+.journey-app .fish-species strong { font-size: 14px; }
+.journey-app .fish-species span:not(.spot-index) { font-size: 12.5px; color: #5b6f80; }
+.journey-app .local-fish { margin: 0 0 10px; padding: 10px 14px; border-radius: 14px; background: linear-gradient(150deg, rgb(15 143 154 / .08), rgb(143 201 236 / .12)); font-size: 13px; }
+.journey-app .local-fish b { color: var(--sea); font-size: 14.5px; margin-left: 4px; }
+.journey-app .local-fish small { display: block; margin-top: 3px; font-size: 11.5px; color: #5b6f80; }
+.journey-app .local-spots { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.journey-app .local-spots li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 12px; border-radius: 12px; background: rgb(255 255 255 / .85); border: 1px solid rgb(20 42 62 / .07); }
+.journey-app .local-spots small { color: #6d7f8e; font-size: 11.5px; }
+.journey-app .fishing-foot { margin-top: 6px; padding-top: 4px; border-top: 1px solid rgb(20 42 62 / .07); }
+.journey-app .fishing-source { margin-top: 14px !important; }
+@media (min-width: 900px) {
+  .journey-app .best-spots { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .journey-app .fishing-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .journey-app .fish-week { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.journey-app .fish-week .idx-danger { background: repeating-linear-gradient(135deg, #ffe3dc 0 6px, #ffd3c8 6px 12px); color: #9b2a14; }
+/* destination fishing hint: one quiet glass pill on the photo, only for the selected beach */
+.journey-app .fish-badge {
+  display: inline-flex; align-items: center; gap: 7px; padding: 6px 12px 6px 10px;
+  font-size: 12.5px; font-weight: 650; color: #0d5560; letter-spacing: -.01em;
+  background: rgb(255 255 255 / .72); border: 1px solid rgb(255 255 255 / .9);
+  box-shadow: 0 4px 14px -6px rgb(10 50 70 / .35);
+  animation: badge-in .7s var(--ease-out) .45s both;
+}
+.journey-app .fish-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--sea-2); box-shadow: 0 0 0 3px rgb(57 184 198 / .22); }
+@keyframes badge-in { from { opacity: 0; transform: translateY(-6px); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }

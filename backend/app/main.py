@@ -17,6 +17,7 @@ if "unittest" not in sys.modules:
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
+from . import fishing
 from .analytics import router as analytics_router
 from .ai import select_json
 from .course import router as course_router
@@ -179,6 +180,26 @@ async def guide(
         weather = None
         weather_error = exc.detail
     return await build_guide(profile, weather, weather_error)
+
+
+@app.get("/api/fishing")
+def fishing_spots():
+    """Beach id -> fishing spot name at that beach (for the destination badges)."""
+    return {b["id"]: fishing.spot_here(b) for b in BEACHES if fishing.spot_here(b)}
+
+
+@app.get("/api/fishing/{beach_id}")
+async def fishing_info(beach_id: str, mode: Literal["demo", "forecast"] = "demo"):
+    beach = next((b for b in BEACHES if b["id"] == beach_id), None)
+    if beach is None:
+        raise HTTPException(404, detail={"message": "지원하지 않는 해변입니다."})
+    try:
+        weather = await risk_data(beach_id, mode, with_ai=False)
+    except HTTPException as exc:
+        if exc.status_code != 503:
+            raise
+        weather = None
+    return await fishing.build(beach, weather, mode == "demo")
 
 
 def hourly_points(weather, marine, start):

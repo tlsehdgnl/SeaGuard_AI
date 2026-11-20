@@ -3,6 +3,8 @@ import { listPlans, savePlan, PLAN_PREFIX } from "./savedPlans.js";
 import { CoursePlanner } from "./CoursePlanner.jsx";
 import { WeatherArt } from "./WeatherArt.jsx";
 import { MapLink, PhoneLink, OutLink } from "./MapLink.jsx";
+import { ActivityArt } from "./ActivityArt.jsx";
+import { FishingPanel } from "./FishingPanel.jsx";
 import { weatherSummary } from "./weatherSummary.js";
 import { BEACHES, destinationName } from "./beaches.js";
 import React, { useEffect, useRef, useState } from "react";
@@ -32,11 +34,12 @@ import { LanguageProvider, LanguageSwitch, useLanguage, translate } from "./i18n
 import { track, trackLink } from "./analytics.js";
 
 const BASE = import.meta.env.VITE_API_BASE_URL || "";
-function BeachIntro({ beach, name }) {
+function BeachIntro({ beach, name, fishingSpot }) {
   const { source, description } = BEACHES.find(item => item.id === beach);
   const cityPhoto = typeof source === "number";
   const [failed, setFailed] = useState(false);
   return <article className="beach-intro" aria-live="polite">
+    {fishingSpot && <span className="fish-badge" title={fishingSpot}>낚시하기 좋은 곳이에요!</span>}
     {!failed && <img src={`${import.meta.env.BASE_URL}beaches/${beach}.jpg`} alt={`${name} 전경`} onError={() => setFailed(true)} />}
     <div><h3>{name}</h3><p>{description}</p>
       <a href={cityPhoto ? `https://www.dh.go.kr/tour/selectTourCntntsWebView.do?key=1620&ctgryNo=4&tourNo=${source}` : source} target="_blank" rel="noreferrer">사진 출처 · {cityPhoto ? "동해시 관광 안내" : "행복한섬길 탐방기"} ↗</a>
@@ -390,6 +393,23 @@ function App() {
       controller.abort();
     };
   }, [requestKey, refresh]);
+  // Fishing: spot badges (static) and per-beach safety/spots (follows beach + data mode).
+  const [fishingSpots, setFishingSpots] = useState({});
+  const [fishingResult, setFishingResult] = useState(null);
+  const fishingKey = profile.beach + ":" + profile.mode;
+  const fishing = fishingResult?.key === fishingKey ? fishingResult.data : null;
+  useEffect(() => {
+    const controller = new AbortController();
+    request("/api/fishing", controller.signal).then(setFishingSpots).catch(() => {});
+    return () => controller.abort();
+  }, []);
+  useEffect(() => {
+    const controller = new AbortController();
+    request(`/api/fishing/${profile.beach}?mode=${profile.mode}`, controller.signal)
+      .then((value) => setFishingResult({ key: fishingKey, data: value }))
+      .catch(() => {});
+    return () => controller.abort();
+  }, [fishingKey, refresh]);
   useEffect(() => {
     setVisited([]);
     setQr("");
@@ -590,11 +610,10 @@ function App() {
                 className={profile.beach === b.id ? "selected" : ""}
                 onClick={() => change("beach", b.id)}
               >
-                {destinationName(b.id)}
-              </button>
+                {destinationName(b.id)}              </button>
             ))}
           </div>
-          <BeachIntro key={profile.beach} beach={profile.beach} name={beachName} />
+          <BeachIntro key={profile.beach} beach={profile.beach} name={beachName} fishingSpot={fishingSpots[profile.beach]} />
         </section>
         </>}
         {step===1 && (
@@ -603,11 +622,12 @@ function App() {
             <div className="activity-postcards" role="group" aria-label="활동 선택">
               {Object.entries(ACTIVITY_LABELS).map(([key, title], index) => (
                 <button key={key} type="button" aria-pressed={profile.activity.includes(key)}
+                  className={key === "fishing" && fishing ? `fish-${fishing.safety.level}` : undefined}
                   onClick={() => toggleActivity(key)}>
-                  <span aria-hidden="true" className="postcard-art" style={{
-                    backgroundPosition: `${(index % 2) * 100}% ${Math.floor(index / 2) * 100 / 3}%`,
-                  }} />
+                  <span aria-hidden="true" className="postcard-art"><ActivityArt kind={key} /></span>
                   <span className="postcard-label">{title}</span>
+                  {key === "fishing" && fishing && fishing.safety.level !== "unknown" &&
+                    <span className="fish-bubble" role="note">{fishing.safety.label}</span>}
                 </button>
               ))}
             </div>
@@ -786,6 +806,7 @@ function App() {
           </>
         )}
 
+        {profile.activity.includes("fishing") && <FishingPanel fishing={fishing} beachName={beachName} />}
         <section className="card official">
 
           <h2>공식 정보까지 한 번 더 확인하세요</h2>

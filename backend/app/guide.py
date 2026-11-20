@@ -24,6 +24,7 @@ ACTIVITY_ACTIONS = {
     "cafe": "방문할 카페의 영업시간과 마지막 주문 시각을 확인하세요. 주변 활동에서 카페 위치를 볼 수 있어요.",
     "food": "식당의 휴무일과 주문 마감 시간을 확인하세요. 주변 활동에서 메뉴와 위치를 함께 볼 수 있어요.",
     "cleanup": "집게와 봉투를 준비해 마른 모래사장에서 주워요. 깨진 유리나 주삿바늘은 손대지 말고 관리소에 알려주세요.",
+    "fishing": "출입통제 구역(테트라포드·방파제 일부)에서는 낚시하지 말고, 구명조끼와 미끄럼 방지 신발을 착용하세요.",
 }
 
 
@@ -43,6 +44,9 @@ def fixed_actions(profile, weather):
         text = ("입수를 피하고 물가에서 떨어져 현장 통제에 따르세요." if weather["risk"]["level"] == "danger"
                 else "물놀이를 자제하고 현장 안전요원의 안내를 확인하세요.")
         items.append({"id": "signal", "text": text + " 실내 활동으로 일정 변경을 검토할 수 있습니다."})
+    if "fishing" in activities and weather and weather["risk"]["level"] in ("caution", "danger"):
+        items.append({"id": "fishing-signal", "text": "파도·바람 신호가 있어 갯바위·방파제 낚시는 피하세요."
+                      if weather["risk"]["level"] == "caution" else "오늘은 갯바위·방파제 낚시를 미뤄 주세요. 높은 파도나 강한 바람이 예상돼요."})
     return items
 
 

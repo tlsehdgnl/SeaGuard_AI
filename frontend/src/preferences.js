@@ -14,7 +14,7 @@ const shopNames = new Set([...Object.values(PLACE_NAMES), ...Object.values(shops
 export const ACTIVITY_LABELS = {
   walk: "산책", swim: "물놀이", photo: "풍경 사진",
   sunrise: "일출 감상", picnic: "피크닉", cafe: "카페 탐방",
-  food: "맛집 탐방", cleanup: "해변 쓰레기 줍기",
+  food: "맛집 탐방", cleanup: "해변 쓰레기 줍기", fishing: "낚시",
 };
 
 export const TIME_OPTIONS = [
