@@ -240,7 +240,7 @@ function LibraryPrograms() {
 function PlanSummary({ indoorPlaces, profile, beachName, activityNames, weather, loading, visitDate, setVisitDate, onAlternate, replaceStop }) {
   const conditions = [
     profile.children && "어린이 동반",
-    { stroller: "유모차 동반", step_free: "계단 없는 이동" }[profile.mobility],
+    { stroller: "유모차 동반", step_free: "휠체어 이용" }[profile.mobility],
     { car: "차량 이용", transit: "대중교통" }[profile.transport],
     profile.budget === "free" && "무료 활동",
     profile.time_budget !== "any" && `이동 포함 ${profile.time_budget}분 이내`,
@@ -729,7 +729,7 @@ function App() {
               options={[
                 ["any", "선택 안 함"],
                 ["stroller", "유모차 동반"],
-                ["step_free", "계단 없는 이동 필요"],
+                ["step_free", "휠체어 이용"],
               ]}
             />
             <Select

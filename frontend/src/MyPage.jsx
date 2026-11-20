@@ -26,7 +26,7 @@ export function MyPage({ plans, localPlans=[], onOpen, onDelete, onBack, heading
         <h3>{destinationName(p.beach)}</h3>
         <p>{p.activity.map(a => ACTIVITY_LABELS[a]).join(" · ")}</p>
         <p className="hint">{[p.mode === "demo" ? "예시 데이터" : "모델 예보", p.children && "어린이 동반",
-          {stroller:"유모차 동반",step_free:"계단 없는 이동"}[p.mobility],
+          {stroller:"유모차 동반",step_free:"휠체어 이용"}[p.mobility],
           {transit:"대중교통",car:"차량 이용"}[p.transport],p.budget === "free" && "무료 활동",
           p.time_budget !== "any" && p.time_budget+"분 이내"].filter(Boolean).join(" · ")}</p>
         {(p.stops.length > 0 || p.catalog?.length > 0) && <p>담은 장소 · {[...p.stops,...(p.catalog || []).map(c=>c.name)].join(" → ")}</p>}
