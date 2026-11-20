@@ -11,3 +11,5 @@ dist/
 !.env.*.example
 *.pyc
 .pytest_cache/
+.vercel
+.env*
