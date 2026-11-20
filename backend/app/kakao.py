@@ -167,7 +167,10 @@ def clip(text, n):
 def memo_template(body, base):
     """Kakao "feed" message. Links and images stay on our registered domain."""
     own = lambda u: u if u.startswith(base) else base
-    link = {"web_url": own(body.url), "mobile_web_url": own(body.url)}
+    # Tapping anywhere on the card opens the landing screen (?home skips any saved journey draft);
+    # the single button jumps to the sea briefing (step 3, the same page the QR code opens).
+    home = base + "?home"
+    link = {"web_url": home, "mobile_web_url": home}
     brief = {"web_url": own(body.brief_url or body.url), "mobile_web_url": own(body.brief_url or body.url)}
     content = {"title": clip(body.title, 40), "description": clip(body.description, 120), "link": link}
     if body.image.startswith(base):
@@ -183,7 +186,7 @@ def memo_template(body, base):
             "sum": "일정",
             "sum_op": clip(body.summary, 14),
         },
-        "buttons": [{"title": "계획 다시 보기", "link": link}, {"title": "바다 브리핑", "link": brief}],
+        "buttons": [{"title": "여행 계획으로 바로가기", "link": brief}],
     }
 
 
