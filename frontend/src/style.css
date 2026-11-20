@@ -144,3 +144,14 @@ h1 { margin-top: 10px; color: var(--ink); font-size: clamp(36px, 5vw, 65px); fon
   .official-caption { flex-basis: 100%; padding: 3px 0 0 3px; }
   .source-grid { grid-template-columns: 1fr; gap: 8px; }
 }
+
+.day-preview { margin:24px 0; padding:20px; border:1px solid #cbdadf; border-radius:16px; background:white; }
+.day-preview h2 { margin:0; font-size:1.2rem; }
+.day-preview figure { position:relative; overflow:hidden; margin:12px 0; border-radius:12px; background:#183547; color:white; }
+.day-preview img { display:block; width:100%; max-height:360px; aspect-ratio:16/9; object-fit:cover; animation:preview-arrive .24s ease-out; }
+.day-preview figcaption { padding:12px 16px; }
+.day-preview strong { display:block; margin:4px 0; }
+.day-preview figcaption a { color:inherit; }
+.day-preview button { padding:9px 14px; margin-right:6px; border:1px solid #9ab5bd; border-radius:9px; background:white; color:#173948; cursor:pointer; }
+@keyframes preview-arrive { from { opacity:.4; transform:translateX(12px); } to { opacity:1; transform:none; } }
+@media(prefers-reduced-motion:reduce){ .day-preview img { animation:none; } }

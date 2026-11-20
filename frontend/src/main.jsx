@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './style.css';
+import DayPreview from './DayPreview';
+import courses from './previewCourses.json';
 
 const BASE = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
 const BEACHES = [
@@ -209,6 +211,7 @@ function App() {
         </div>
       </section>
       <div className="disclaimer"><Icon name="alert" size={17}/><p>해변 인근 격자 예보이며 공식 경보나 입수 허가가 아닙니다. <strong>현장 안내와 통제를 우선하세요.</strong></p></div>
+      <DayPreview key={beach} beach={selected.name} stops={courses[beach]}/>
       <Details data={data}/>
     </main>
     <footer className="site-footer"><div className="shell footer-inner"><span>SeaGuard AI <span aria-hidden="true">·</span> 동해 해변 방문 안내</span><a href="#guide">데이터와 안내 기준</a></div></footer>

@@ -1,0 +1,44 @@
+{
+  "mangsang": [
+    {
+      "name": "망상해뜰책뜰",
+      "detail": "그림책·가족 독서",
+      "image": "/place-photos/DH-POI-205.webp",
+      "source": "https://dh.go.kr/msbook/sub.do?key=1323"
+    },
+    {
+      "name": "동해꿈빛마루도서관",
+      "detail": "그림책·실감형 미디어·AR 독서",
+      "image": "/place-photos/DH-POI-206.webp",
+      "source": "https://www.donghaelib.go.kr/web/menu/10094/contents/40032/contents.do"
+    }
+  ],
+  "eodal": [
+    {
+      "name": "연필뮤지엄",
+      "detail": "연필·디자인 전시, 써보기",
+      "image": "/place-photos/DH-POI-098.webp",
+      "source": "https://www.pencilmuseum.co.kr/location"
+    },
+    {
+      "name": "동해시립발한도서관",
+      "detail": "유아·아동 독서, 문화 프로그램",
+      "image": "/place-photos/DH-POI-207.webp",
+      "source": "https://www.donghaelib.go.kr/web/menu/10083/contents/40025/contents.do"
+    }
+  ],
+  "chuam": [
+    {
+      "name": "천곡황금박쥐동굴",
+      "detail": "석회암 동굴·화석 전시, GG파크",
+      "image": "/place-photos/DH-POI-094.webp",
+      "source": "https://www.dhsisul.org/pages/sub.htm?nav_code=new1701823163&mv_data=aWR4PTEmdHlwZT10b3Vy"
+    },
+    {
+      "name": "동해무릉건강숲",
+      "detail": "환경·건강 교육, 친환경 만들기, 테마체험실",
+      "image": "/place-photos/DH-POI-078.webp",
+      "source": "https://www.dh.go.kr/forest/board/03.htm?mode=view&idx=4297&mv_data=aWR4PTQyOTcmc3RhcnRQYWdlPSZsaXN0Tm89JnRhYmxlPWNzX2Jic19kYXRhJmNvZGU9cGhvdG8mc2VhcmNoX2l0ZW09JnNlYXJjaF9vcmRlcj0=%7C%7C"
+    }
+  ]
+}
