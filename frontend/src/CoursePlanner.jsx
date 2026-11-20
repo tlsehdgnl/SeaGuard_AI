@@ -6,7 +6,7 @@ import { DayPicker } from "./DayPicker.jsx";
 import { KakaoSendButton } from "./KakaoButtons.jsx";
 import { ParkingChip, LodgingCard } from "./LocalExtras.jsx";
 import { TAG_LABELS, activityTag, rankAlternatives, lostActivities, wantedTag, SEASIDE } from "./activityTags.js";
-import { ACTIVITY_LABELS } from "./preferences.js";
+import { ACTIVITY_LABELS, profileParams } from "./preferences.js";
 import { useLanguage } from "./i18n.js";
 import coordinates from "./routeCoordinates.json";
 import React, { useState, useEffect, useRef } from "react";
@@ -18,7 +18,7 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
   const [saved] = useState(() => {
     try { return JSON.parse(sessionStorage.getItem(settingsKey)); } catch { return null; }
   });
-  const [settings, setSettings] = useState(saved?.settings || { closed:false, start:"10:00", end:"18:00", meals:profile.time_budget === "any" || Number(profile.time_budget) >= 180 ? ["12:00"] : [], hours:{}});
+  const [settings, setSettings] = useState(saved?.settings || linkedSettings() || { closed:false, start:"10:00", end:"18:00", meals:profile.time_budget === "any" || Number(profile.time_budget) >= 180 ? ["12:00"] : [], hours:{}});
   const generation = useRef(0);
   const [applied, setApplied] = useState(saved?.applied || settings);
   useEffect(()=>{try {sessionStorage.setItem(settingsKey,JSON.stringify({settings,applied}));} catch {}},[settingsKey,settings,applied]);
@@ -245,13 +245,26 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
       </button>
       {result && <KakaoSendButton build={() => {
         const cands = JSON.parse(payload).candidates;
-        const course = result.timeline.map(r => `${clock(r.arrival)} ${cands[r.id].name}`).join(" → ") || "방문할 곳을 더 담아 주세요";
+        const rows = result.timeline.map(r => ({ time: clock(r.arrival), name: cands[r.id].name.slice(0, 40) }));
+        const meals = result.timeline.filter(r => r.meal).length;
+        const [, m, d] = visitDate.split("-").map(Number);
+        const wd = "일월화수목금토"[new Date(visitDate + "T12:00:00+09:00").getUTCDay()];
         const cut = (t, n) => (t.length > n ? t.slice(0, n - 1) + "…" : t);
-        return { title: cut(`${start} 여행 계획 · ${visitDate}`, 60), url: window.location.href, items: [
-          { title: "하고 싶은 활동", description: cut(`${activityNames} · ${conditions}`, 120) },
-          { title: "코스", description: cut(course, 120) },
-          { title: "바다 날씨", description: cut(`${forecastText} 출발 전 기상청 특보를 확인하세요.`, 120) },
-        ] };
+        // The link carries the whole plan (beach, activities, stops, date, times) and opens on this screen.
+        const params = profileParams({ ...profile, visit_date: visitDate });
+        const brief = location.origin + "/#" + params.toString();
+        params.set("view", "plan");
+        params.set("cs", `${applied.start}-${applied.end}@${applied.meals.join("|")}`);
+        return {
+          title: cut(`🌊 ${start} 바다 여행`, 60),
+          subtitle: `${m}/${d}(${wd}) ${applied.start}–${applied.end}`,
+          description: cut(`${activityNames}${conditions && conditions !== "별도 조건 없음" ? " · " + conditions : ""}\n${forecastText}`, 200),
+          rows: rows.slice(0, 5),
+          summary: `${rows.length}곳${meals ? ` · 식사 ${meals}회` : ""}${rows.length > 5 ? " (앞 5곳)" : ""}`,
+          image: `${location.origin}/beaches/${profile.beach}.jpg`,
+          url: location.origin + "/#" + params.toString(),
+          brief_url: brief,
+        };
       }} />}
       {!!result?.stops.length && <div className="course-map-card"><CourseMap stops={result.stops} />
         <p className="hint">이동시간과 영업 여부는 각 장소의 지도에서 확인하세요.</p></div>}
@@ -323,4 +336,12 @@ function SeaPlan({plan,language}) {
     <p className="sea-plan-notice">예보가 잔잔해도 안전을 보장하지 않습니다. 공식 특보·현장 통제를 우선하고, 통제가 있으면 바다 방문을 제외하세요.</p>
     <a href="https://www.weather.go.kr/w/special-report/overall.do" target="_blank" rel="noreferrer">기상청 공식 특보 확인 ↗</a>
   </section>;
+}
+
+/** Course times from a shared plan link (#...&cs=10:00-18:00@12:00|17:00), or null. */
+function linkedSettings() {
+  const cs = new URLSearchParams(location.hash.slice(1)).get("cs");
+  const m = cs && /^(\d{2}:\d{2})-(\d{2}:\d{2})@((?:\d{2}:\d{2}\|?){0,3})$/.exec(cs);
+  if (!m) return null;
+  return { closed: false, start: m[1], end: m[2], meals: m[3] ? m[3].split("|").filter(Boolean) : [], hours: {} };
 }

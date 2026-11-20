@@ -143,15 +143,48 @@ async def callback(request: Request, code: str = "", state: str = "", error: str
     return response
 
 
-class Item(BaseModel):
-    title: str = Field(min_length=1, max_length=60)
-    description: str = Field(max_length=120)
+class Row(BaseModel):
+    time: str = Field(min_length=1, max_length=8)      # "10:01"
+    name: str = Field(min_length=1, max_length=40)
 
 
 class Memo(BaseModel):
-    title: str = Field(min_length=1, max_length=60)
-    items: list[Item] = Field(min_length=2, max_length=3)  # Kakao list template: 2-3 rows
-    url: str = Field(max_length=2000)
+    """A plan "receipt" for the user's own KakaoTalk (feed template + item list)."""
+    title: str = Field(min_length=1, max_length=60)           # "망상해변 바다 여행"
+    subtitle: str = Field(min_length=1, max_length=40)        # "11/23(월) 10:00–18:00"
+    description: str = Field(max_length=200)                  # activities · weather
+    rows: list[Row] = Field(default_factory=list, max_length=5)  # visit order (Kakao shows up to 5)
+    summary: str = Field(max_length=40)                       # "4곳 · 식사 1회"
+    image: str = Field(default="", max_length=500)
+    url: str = Field(max_length=4000)                         # reopens this exact plan
+    brief_url: str = Field(default="", max_length=4000)       # reopens the sea briefing
+
+
+def clip(text, n):
+    return text if len(text) <= n else text[: n - 1] + "…"
+
+
+def memo_template(body, base):
+    """Kakao "feed" message. Links and images stay on our registered domain."""
+    own = lambda u: u if u.startswith(base) else base
+    link = {"web_url": own(body.url), "mobile_web_url": own(body.url)}
+    brief = {"web_url": own(body.brief_url or body.url), "mobile_web_url": own(body.brief_url or body.url)}
+    content = {"title": clip(body.title, 40), "description": clip(body.description, 120), "link": link}
+    if body.image.startswith(base):
+        content.update(image_url=body.image, image_width=800, image_height=400)
+    return {
+        "object_type": "feed",
+        "content": content,
+        "item_content": {
+            "profile_text": "DePartner · 동해 바다 여행",
+            "title_image_text": clip(body.subtitle, 24),
+            "title_image_category": "나의 여행 계획",
+            "items": [{"item": clip(r.time, 6), "item_op": clip(r.name, 14)} for r in body.rows[:5]],
+            "sum": "일정",
+            "sum_op": clip(body.summary, 14),
+        },
+        "buttons": [{"title": "계획 다시 보기", "link": link}, {"title": "바다 브리핑", "link": brief}],
+    }
 
 
 @router.post("/memo")
@@ -161,13 +194,7 @@ async def memo(body: Memo, request: Request, response: Response):
     token = request.cookies.get(TOKEN)
     if not token:
         raise HTTPException(401, "카카오로 로그인하면 카카오톡으로 보낼 수 있어요.")
-    base = site_link()["web_url"]
-    url = body.url if body.url.startswith(base) else base  # links must stay on our registered domain
-    link = {"web_url": url, "mobile_web_url": url}
-    template = {"object_type": "list", "header_title": body.title, "header_link": link,
-                "contents": [{"title": i.title, "description": i.description, "link": link} for i in body.items],
-                "buttons": [{"title": "계획 열기", "link": link}]}
-    sent = await send_memo(token, template)
+    sent = await send_memo(token, memo_template(body, site_link()["web_url"]))
     if sent.status_code == 200:
         return {"ok": True}
     if sent.status_code in (401, 403):

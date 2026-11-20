@@ -329,7 +329,11 @@ function App() {
   }
   const [started, setStarted] = useState(() => (history.state?.journey ?? draft?.started) || new URLSearchParams(location.hash.slice(1)).has("beach") || new URLSearchParams(location.search).has("mypage"));
   const trackedPlan = useRef("");
-  const [step, setStep] = useState(() => history.state?.step ?? draft?.step ?? (new URLSearchParams(location.hash.slice(1)).has("beach") ? 2 : 0));
+  // A plan link from KakaoTalk carries view=plan and opens straight on the plan summary (step 5).
+  const [step, setStep] = useState(() => history.state?.step ?? draft?.step ?? (() => {
+    const params = new URLSearchParams(location.hash.slice(1));
+    return params.get("view") === "plan" && params.has("beach") ? 4 : params.has("beach") ? 2 : 0;
+  })());
   const flowHeading = useRef(null);
   function go(next) {
     if (history.state?.journey && next < step && history.state.previousStep === next) {

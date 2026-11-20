@@ -39,7 +39,7 @@ class KakaoTests(unittest.TestCase):
         self.assertTrue(r.headers["location"].endswith("kakao=error"))
 
     def test_memo_needs_kakao_login(self):
-        body = {"title": "t", "items": [{"title": "a", "description": "b"}, {"title": "c", "description": "d"}], "url": "x"}
+        body = {"title": "t", "subtitle": "s", "description": "d", "rows": [], "summary": "x", "url": "x"}
         self.assertEqual(self.client.post("/api/kakao/memo", json=body, headers=ORIGIN).status_code, 401)
 
     def test_traffic_segments_are_merged_and_colored(self):
@@ -82,3 +82,19 @@ class KakaoLocalTests(unittest.TestCase):
 
     def test_place_search_needs_two_characters(self):
         self.assertEqual(self.client.get("/api/kakao/places?q=a").status_code, 422)
+
+
+class KakaoMemoTemplateTests(unittest.TestCase):
+    def test_feed_receipt_keeps_links_on_our_domain(self):
+        base = "https://departner-donghae.vercel.app/"
+        body = kakao.Memo(title="망상해변 바다 여행", subtitle="11/23(월) 10:00–18:00", description="산책 · 파도 조금",
+                          rows=[kakao.Row(time="10:01", name="망상해변"), kakao.Row(time="12:00", name="아주아주아주아주긴식당이름본점")],
+                          summary="2곳 · 식사 1회", image=base + "beaches/mangsang.jpg",
+                          url=base + "#beach=mangsang&view=plan", brief_url="https://evil.example/")
+        t = kakao.memo_template(body, base)
+        self.assertEqual(t["object_type"], "feed")
+        self.assertEqual([i["item"] for i in t["item_content"]["items"]], ["10:01", "12:00"])
+        self.assertTrue(t["item_content"]["items"][1]["item_op"].endswith("…"))   # long names are clipped
+        self.assertEqual(t["buttons"][0]["link"]["web_url"], base + "#beach=mangsang&view=plan")
+        self.assertEqual(t["buttons"][1]["link"]["web_url"], base)                  # foreign link replaced
+        self.assertEqual(t["content"]["image_url"], base + "beaches/mangsang.jpg")
