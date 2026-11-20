@@ -181,16 +181,17 @@ class RouteRequest(BaseModel):
 def simplify(route):
     """Kakao route -> legs (per section) + traffic segments [{level, path:[[lat,lng]...]}]."""
     legs, segments = [], []
-    for section in route.get("sections", []):
+    for leg, section in enumerate(route.get("sections", [])):  # one section per stop-to-stop leg
         legs.append({"distance": section.get("distance"), "duration": section.get("duration")})
         for road in section.get("roads", []):
             v = road.get("vertexes", [])
             path = [[v[i + 1], v[i]] for i in range(0, len(v) - 1, 2)]
             level = TRAFFIC.get(road.get("traffic_state"), "unknown")
-            if segments and segments[-1]["level"] == level and segments[-1]["path"][-1] == path[0]:
-                segments[-1]["path"] += path[1:]
+            last = segments[-1] if segments else None
+            if last and last["leg"] == leg and last["level"] == level and last["path"][-1] == path[0]:
+                last["path"] += path[1:]
             elif path:
-                segments.append({"level": level, "path": path})
+                segments.append({"level": level, "path": path, "leg": leg})
     summary = route.get("summary", {})
     return {"distance": summary.get("distance"), "duration": summary.get("duration"), "legs": legs, "segments": segments}
 
@@ -224,3 +225,69 @@ async def route(body: RouteRequest, response: Response):
     if len(_route_cache) > 100:
         _route_cache.pop(next(iter(_route_cache)))
     return answer
+
+
+# ── Kakao Local: lodging search + nearby convenience stores / parking ──
+# KAKAO_LOCAL_KEY lets a different Kakao app (with 카카오맵 enabled) serve these calls.
+LOCAL = "https://dapi.kakao.com/v2/local/search/"
+NEARBY_KINDS = {"convenience": "CS2", "parking": "PK6"}
+_local_cache = {}
+DONGHAE = (37.5247, 129.1143)
+
+
+def local_key():
+    return os.getenv("KAKAO_LOCAL_KEY") or rest_key()
+
+
+async def local_get(kind, params):
+    key = local_key()
+    if not key:
+        raise HTTPException(503, "카카오 장소 검색 설정 전이에요.")
+    cache_key = kind + json.dumps(params, sort_keys=True)
+    hit = _local_cache.get(cache_key)
+    if hit and time.monotonic() - hit[0] < 600:
+        return hit[1]
+    try:
+        async with httpx.AsyncClient(timeout=8) as client:
+            r = await client.get((os.getenv("KAKAO_LOCAL_URL") or LOCAL) + kind + ".json", params=params, headers={"Authorization": f"KakaoAK {key}"})
+    except httpx.HTTPError:
+        raise HTTPException(502, "카카오 장소 정보를 불러오지 못했어요.") from None
+    if r.status_code in (401, 403):
+        raise HTTPException(503, "카카오맵(로컬) 사용 설정을 확인해 주세요.")
+    if r.status_code != 200:
+        raise HTTPException(502, "카카오 장소 정보를 불러오지 못했어요.")
+    data = r.json()
+    _local_cache[cache_key] = (time.monotonic(), data)
+    if len(_local_cache) > 300:
+        _local_cache.pop(next(iter(_local_cache)))
+    return data
+
+
+def place(d):
+    return {"id": d.get("id"), "name": d.get("place_name", ""), "address": d.get("road_address_name") or d.get("address_name", ""),
+            "category": (d.get("category_name") or "").split(" > ")[-1], "lat": float(d["y"]), "lng": float(d["x"]),
+            "distance": int(d["distance"]) if str(d.get("distance") or "").isdigit() else None, "url": d.get("place_url")}
+
+
+@router.get("/places")
+async def places(q: str, response: Response):
+    """Keyword search biased to Donghae (for picking the traveller's lodging)."""
+    accounts.no_cache(response)
+    q = q.strip()[:40]
+    if len(q) < 2:
+        raise HTTPException(422, "두 글자 이상 입력해 주세요.")
+    data = await local_get("keyword", {"query": q, "y": DONGHAE[0], "x": DONGHAE[1], "radius": 20000, "size": 8, "sort": "accuracy"})
+    return {"items": [place(d) for d in data.get("documents", [])]}
+
+
+@router.get("/nearby")
+async def nearby(lat: float, lng: float, kind: str, response: Response, radius: int = 500):
+    """Nearest convenience stores or parking lots around a point (sorted by distance)."""
+    accounts.no_cache(response)
+    if kind not in NEARBY_KINDS or not (33 <= lat <= 39 and 124 <= lng <= 132):
+        raise HTTPException(422, "요청 값을 확인해 주세요.")
+    radius = max(100, min(radius, 2000))
+    data = await local_get("category", {"category_group_code": NEARBY_KINDS[kind], "y": round(lat, 5), "x": round(lng, 5),
+                                        "radius": radius, "sort": "distance", "size": 5})
+    return {"count": (data.get("meta") or {}).get("total_count", 0), "radius": radius,
+            "items": [place(d) for d in data.get("documents", [])]}

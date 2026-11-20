@@ -4,6 +4,7 @@ import { CourseMap } from "./CourseMap.jsx";
 import { MapLink } from "./MapLink.jsx";
 import { DayPicker } from "./DayPicker.jsx";
 import { KakaoSendButton } from "./KakaoButtons.jsx";
+import { ParkingChip, LodgingCard } from "./LocalExtras.jsx";
 import { TAG_LABELS, activityTag, rankAlternatives, lostActivities, wantedTag, SEASIDE } from "./activityTags.js";
 import { ACTIVITY_LABELS } from "./preferences.js";
 import { useLanguage } from "./i18n.js";
@@ -202,6 +203,7 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
           <div className="tl-head"><strong>{stop.name}</strong><span className="tl-kind">{row.coastal ? "바다 조망" : row.meal ? (stop.backup ? "대체 식당" : "식사") : "방문"}</span>
             <MapLink href={"https://map.naver.com/p/search/"+encodeURIComponent("동해시 "+stop.name)} name={stop.name} /></div>
           <p>{stop.detail}</p><p className="tl-meta">예상 이동 {row.travel_minutes} min · {row.distance_km === null ? "좌표 미확인" : `${row.distance_km} km`} · {row.coastal ? "시간별 예보 반영 · 현장 확인 필요" : row.hours_known ? "입력한 운영시간 반영" : "운영시간 확인 필요"}</p>
+          <ParkingChip name={stop.name} point={stop.point || coordinates[stop.name]} />
           <ShelterFinder key={stop.name} name={stop.name} placePoint={stop.point} compact />
           <StopSafety key={payload+JSON.stringify(row)} row={row} profile={profile} language={language} />
         </div>
@@ -253,6 +255,14 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
       }} />}
       {!!result?.stops.length && <div className="course-map-card"><CourseMap stops={result.stops} />
         <p className="hint">이동시간과 영업 여부는 각 장소의 지도에서 확인하세요.</p></div>}
+      <LodgingCard lastStop={(() => {
+        const rows = result?.timeline || [], cands = payload ? JSON.parse(payload).candidates : [];
+        for (let i = rows.length - 1; i >= 0; i--) {
+          const stop = cands[rows[i].id], pt = stop && (stop.point || coordinates[stop.name]);
+          if (pt) return { name: stop.name, lat: pt[0], lng: pt[1] };
+        }
+        return null;
+      })()} />
     </aside>
     {chatOpen && <dialog ref={chatDialog} className="trip-chat-dialog" aria-labelledby="trip-chat-title" onCancel={()=>setChatOpen(false)} onClick={e=>{if(e.target===e.currentTarget)setChatOpen(false);}}>
       <div className="trip-chat-shell">

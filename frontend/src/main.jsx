@@ -975,14 +975,33 @@ function App() {
                   </div>
                 </>
               )}
-              {data.alternatives.excluded.length > 0 && (
+              {(() => {
+                // Places closed on the chosen visit day stay visible but blurred, so "missing" never looks like "not there".
+                const closed = data.alternatives.excluded.filter(p => p.exclusion_reasons.some(r => r.includes("휴관")));
+                if (!closed.length) return null;
+                const [, m, d] = visitDate.split("-").map(Number);
+                const wd = "일월화수목금토"[new Date(visitDate + "T12:00:00+09:00").getUTCDay()];
+                return <>
+                  <h4 className="group-h is-closed">{m}/{d}({wd})에 쉬는 곳 <span>{closed.length}</span></h4>
+                  <div className="place-grid closed-grid">{closed.map(p => (
+                    <article key={p.id} className="card place is-closed" aria-label={p.name + ", 방문일 정기 휴관"}>
+                      <div className="closed-body" aria-hidden="true">
+                        <div className="place-top"><span className="badge">{p.kind} · 실내 활동</span></div>
+                        <h3>{p.name}</h3><p>{p.address}</p>
+                      </div>
+                      <span className="closed-tag">🔒 {m}/{d}({wd}) 정기 휴관</span>
+                    </article>))}
+                  </div>
+                </>;
+              })()}
+              {data.alternatives.excluded.filter(p => !p.exclusion_reasons.some(r => r.includes("휴관"))).length > 0 && (
                 <details className="excluded">
                   <summary>
                     이번 조건에서 제외한 장소{" "}
-                    {data.alternatives.excluded.length}곳과 이유
+                    {data.alternatives.excluded.filter(p => !p.exclusion_reasons.some(r => r.includes("휴관"))).length}곳과 이유
                   </summary>
                   <ul>
-                    {data.alternatives.excluded.map((p) => (
+                    {data.alternatives.excluded.filter(p => !p.exclusion_reasons.some(r => r.includes("휴관"))).map((p) => (
                       <li key={p.id}>
                         <strong>{p.name}</strong> ·{" "}
                         {p.exclusion_reasons.join(" / ")}

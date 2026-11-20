@@ -53,7 +53,32 @@ class KakaoTests(unittest.TestCase):
         self.assertEqual([s["level"] for s in out["segments"]], ["smooth", "jam", "unknown"])
         self.assertEqual(out["segments"][0]["path"], [[37.55, 129.10], [37.56, 129.11], [37.57, 129.12]])  # [lat, lng]
         self.assertEqual(len(out["legs"]), 2)
+        self.assertEqual([s["leg"] for s in out["segments"]], [0, 0, 1])  # lets the UI show one leg at a time
 
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class KakaoLocalTests(unittest.TestCase):
+    def setUp(self):
+        self.client = TestClient(app)
+        kakao._local_cache.clear()
+
+    def test_nearby_parking_is_sorted_and_counted(self):
+        from unittest.mock import AsyncMock
+        docs = {"meta": {"total_count": 3}, "documents": [
+            {"id": "1", "place_name": "망상 공영주차장", "road_address_name": "동해대로 1", "category_name": "교통 > 주차장",
+             "x": "129.09", "y": "37.59", "distance": "150", "place_url": "http://place.map.kakao.com/1"}]}
+        with patch.dict(os.environ, {"KAKAO_REST_API_KEY": "k"}), patch("app.kakao.local_get", AsyncMock(return_value=docs)):
+            data = self.client.get("/api/kakao/nearby?lat=37.59&lng=129.09&kind=parking").json()
+        self.assertEqual(data["count"], 3)
+        self.assertEqual(data["items"][0]["distance"], 150)
+        self.assertEqual(data["items"][0]["name"], "망상 공영주차장")
+
+    def test_nearby_rejects_unknown_kind_and_far_points(self):
+        self.assertEqual(self.client.get("/api/kakao/nearby?lat=37.5&lng=129.1&kind=bar").status_code, 422)
+        self.assertEqual(self.client.get("/api/kakao/nearby?lat=0&lng=0&kind=parking").status_code, 422)
+
+    def test_place_search_needs_two_characters(self):
+        self.assertEqual(self.client.get("/api/kakao/places?q=a").status_code, 422)
