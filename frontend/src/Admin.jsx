@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import "./account.css";
 import "./admin.css";
 import IntegrationDashboard from "./IntegrationDashboard.jsx";
 import CityStats, { StatsUnavailable } from "./CityStats";
@@ -15,6 +16,7 @@ export default function Admin() {
   const [refresh, setRefresh] = useState(0);
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
+  const [reveal, setReveal] = useState(false);
   useEffect(() => {
     if (!key) return;
     const controller = new AbortController();
@@ -36,13 +38,44 @@ export default function Admin() {
     return () => controller.abort();
   }, [key, days, mode, refresh]);
 
+  const en = language === "en";
+  if (!key) return <main className="admin-gate">
+    <div className="account-nav"><a href="/">← {en ? "Back to DePartner" : "뒤로가기"}</a><LanguageSwitch/></div>
+    <a href="/?home" className="account-brand"><img src="/departner-mark.svg" alt=""/>DePartner</a>
+    <section className="account-card admin-gate-card">
+      <span className="admin-gate-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="10.5" width="16" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3" fill="currentColor"/></svg>
+      </span>
+      <p className="account-eyebrow">DONGHAE OPERATIONS</p>
+      <h1>동해시 관광 운영 통계</h1>
+      <p>{en ? "Visitor flows, popular beaches and API status for city staff. Enter the administrator key to continue."
+        : "방문 흐름, 인기 해변, API 연결 상태를 한눈에 확인하는 담당자용 화면이에요. 관리자 접속키를 입력해 주세요."}</p>
+      <form onSubmit={e => {e.preventDefault(); setError(""); setTab("stats"); setKey(input.trim()); setInput(""); setReveal(false);}}>
+        <label>관리자 접속키
+          <span className="admin-key-field">
+            <input type={reveal ? "text" : "password"} required autoComplete="current-password" spellCheck={false}
+              placeholder={en ? "Administrator key" : "접속키 입력"} value={input} onChange={e => setInput(e.target.value)}
+              aria-invalid={!!error} aria-describedby={error ? "admin-gate-error" : undefined}/>
+            <button type="button" className="admin-key-toggle" aria-pressed={reveal} onClick={() => setReveal(!reveal)}>
+              {reveal ? (en ? "Hide" : "숨기기") : (en ? "Show" : "보기")}</button>
+          </span>
+        </label>
+        <button className="account-primary admin-gate-submit" disabled={!input.trim()}>통계 열기 <span aria-hidden="true">→</span></button>
+      </form>
+      {error && <p id="admin-gate-error" className="account-error" role="alert">{error}</p>}
+      <p className="admin-gate-note">{en ? "The key is kept only while this tab is open and is never saved in the browser."
+        : "접속키는 이 탭을 열어 둔 동안에만 쓰이고 브라우저에 저장되지 않아요."}</p>
+    </section>
+  </main>;
+
   return <main className="adminView">
-    <div className="admin-nav"><a className="admin-back" href="/">← 뒤로가기</a><LanguageSwitch/></div>
-    <a href="/?home" className="adminBrand"><img src="/favicon.svg" alt=""/>DePartner</a>
-    <h1>동해시 관광 운영 통계</h1>
-    {!key ? <form className="adminPanel" onSubmit={e => {e.preventDefault(); setTab("stats"); setKey(input.trim()); setInput("");}}>
-      <label>관리자 접속키<input type="password" required autoComplete="current-password" value={input} onChange={e => setInput(e.target.value)}/></label>
-      <button>통계 열기</button></form> : <>
+    <div className="account-nav"><a href="/">← {en ? "Back to DePartner" : "뒤로가기"}</a><LanguageSwitch/></div>
+    <header className="admin-header">
+      <a href="/?home" className="account-brand"><img src="/departner-mark.svg" alt=""/>DePartner</a>
+      <p className="account-eyebrow">DONGHAE OPERATIONS</p>
+      <h1>동해시 관광 운영 통계</h1>
+    </header>
+    <>
       <nav className="admin-sections" aria-label={language === "en" ? "Admin sections" : "관리자 메뉴"}>
         <button type="button" aria-pressed={tab === "stats"} onClick={()=>setTab("stats")}>{language === "en" ? "Operating statistics" : "운영 통계"}</button>
         <button type="button" aria-pressed={tab === "api"} onClick={()=>setTab("api")}>{language === "en" ? "API connections" : "API 연결 상태"}</button>
@@ -57,7 +90,6 @@ export default function Admin() {
       {error && <div className="admin-stats-error" role="alert"><p>{error}</p><button onClick={()=>setRefresh(v=>v+1)}>{language === "en" ? "Retry statistics" : "통계 다시 불러오기"}</button></div>}
       {data ? <CityStats data={data}/> : <StatsUnavailable loading={!error}/>}
       </section> : <IntegrationDashboard token={key} onUnauthorized={()=>{setKey("");setError("관리자 접속키를 확인하세요.");}}/>}
-    </>}
-    {!key && error && <p role="alert">{error}</p>}
+    </>
   </main>;
 }

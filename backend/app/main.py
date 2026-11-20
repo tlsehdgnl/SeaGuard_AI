@@ -10,11 +10,37 @@ from typing import Literal
 import httpx
 from dotenv import load_dotenv
 
+
+def warn_duplicate_env_keys(path):
+    """Warn (names and line numbers only, never values) when a .env file sets a key twice.
+    python-dotenv silently keeps the LAST one, which once sent local Kakao logins to production."""
+    try:
+        lines = path.read_text(encoding="utf-8-sig").splitlines()
+    except OSError:
+        return
+    seen = {}
+    for number, line in enumerate(lines, 1):
+        text = line.strip()
+        if text.startswith("export "):
+            text = text[7:].lstrip()
+        name, sep, _ = text.partition("=")
+        name = name.strip()
+        if sep and name and not name.startswith("#"):
+            seen.setdefault(name, []).append(number)
+    for name, numbers in seen.items():
+        if len(numbers) > 1:
+            where = ", ".join(map(str, numbers))
+            print(f"\033[33mWARNING: {path.name}에 {name}이(가) 여러 번 있어요 (줄 {where}). "
+                  f"마지막 줄({numbers[-1]})의 값이 적용돼요.\033[0m", file=sys.stderr, flush=True)
+
+
 # Local settings override .env defaults; process/Vercel environment values win.
 # Skipped under unittest so tests never spend a real key.
 if "unittest" not in sys.modules:
-    load_dotenv(Path(__file__).resolve().parents[1] / ".env.local", override=False)
-    load_dotenv(Path(__file__).resolve().parents[1] / ".env", override=False)
+    for env_file in (".env.local", ".env"):
+        env_path = Path(__file__).resolve().parents[1] / env_file
+        warn_duplicate_env_keys(env_path)
+        load_dotenv(env_path, override=False)
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 

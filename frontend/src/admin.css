@@ -6,3 +6,41 @@
 .adminView .admin-back{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 18px;border:1px solid #bed3d6;border-radius:999px;background:rgba(255,255,255,.82);color:#234c58;font:inherit;font-size:14px;font-weight:650;text-decoration:none;line-height:1.4;word-break:keep-all;box-shadow:0 3px 12px rgba(23,61,74,.06);transition:background-color .18s,border-color .18s,box-shadow .18s}.adminView .admin-back:hover{background:#dcebea;border-color:#8db4b8;box-shadow:0 4px 14px rgba(23,61,74,.12)}.adminView .admin-back:focus-visible{outline:3px solid #36888b;outline-offset:3px}.adminView .admin-back:active{background:#cbdedc}.adminView .admin-nav{gap:12px;flex-wrap:wrap}
 
 .admin-sections{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 24px;padding:10px;background:#e7f0f0;border:1px solid #cadcde;border-radius:18px}.admin-sections button{min-height:44px;word-break:keep-all}.admin-sections button[aria-pressed=true]{background:#234e5c;color:white;border-color:#234e5c;box-shadow:0 3px 10px #234e5c20}.admin-sections .admin-signout{margin-left:auto;background:transparent}.admin-stats-error{margin:0 0 20px;padding:16px 20px;background:#fff3e0;border:1px solid #e6c88f;border-radius:14px;color:#795620;line-height:1.7}.admin-stats-error p{margin:0 0 12px}.stats-unavailable .adminPanel{min-height:160px}.stats-placeholder{border-top:1px dashed #cbdadc;margin-top:20px;padding:12px;text-align:center;color:#849b9e}.stats-unavailable button:disabled{opacity:.55;cursor:not-allowed}.stats-unavailable small{color:#657c82}.admin-sections button:focus-visible{outline:3px solid #36888b;outline-offset:3px}
+
+/* Admin gate: same card language as /login (account.css), with a key field and a soft backdrop. */
+.admin-gate{position:relative;max-width:560px;margin:auto;padding:32px 20px 64px;color:#234b55;min-height:100svh;box-sizing:border-box}
+.admin-gate::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(60rem 30rem at 15% -10%,#d8eeeb 0,transparent 60%),radial-gradient(50rem 28rem at 110% 10%,#e3ecf8 0,transparent 55%),#f4f8f9}
+.admin-gate .account-nav a{display:inline-flex;align-items:center;min-height:44px;box-sizing:border-box;font-weight:650;transition:background-color .18s,box-shadow .18s}
+.admin-gate .account-nav a:hover{background:#fff;box-shadow:0 4px 14px #173d4a14}
+.admin-gate-card{position:relative;overflow:hidden;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);background:#ffffffd9;box-shadow:0 1px 0 #fff inset,0 24px 60px -24px #1f4f5a40}
+.admin-gate-card::after{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#2f8f8a,#5aa9c9 60%,#e2a36b)}
+.admin-gate-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:16px;background:linear-gradient(145deg,#e4f3f1,#d4e8ec);color:#245a62;margin-bottom:14px;box-shadow:0 1px 0 #fff inset}
+.admin-gate-card .account-eyebrow{margin:0 0 6px;font-weight:650}
+.admin-gate-card h1{margin:0 0 6px;font-size:clamp(24px,4.6vw,30px);letter-spacing:-.02em}
+.admin-gate-card>p:not([class]){color:#4d6d75;font-size:15px;margin:0 0 8px}
+.admin-gate-card label{font-weight:650;color:#2d5560}
+.admin-key-field{position:relative;display:block;margin-top:8px}
+.admin-gate-card .admin-key-field input{margin:0;padding:14px 76px 14px 16px;min-height:52px;border-radius:14px;font-weight:500;letter-spacing:.02em;transition:border-color .18s,box-shadow .18s,background-color .18s}
+.admin-gate-card .admin-key-field input:focus{outline:none;border-color:#3b8f8d;background:#fff;box-shadow:0 0 0 4px #3b8f8d26}
+.admin-gate-card .admin-key-field input[aria-invalid=true]{border-color:#d08a6a}
+.admin-key-toggle{position:absolute;top:50%;right:8px;transform:translateY(-50%);min-height:36px;padding:0 12px;border:0;border-radius:10px;background:#eaf3f2;color:#2a5b63;font:inherit;font-size:13px;font-weight:650;cursor:pointer;word-break:keep-all}
+.admin-key-toggle:hover{background:#dbecea}
+.admin-gate-submit{display:flex!important;align-items:center;justify-content:center;gap:8px;min-height:52px;margin-top:4px;font-weight:700;box-shadow:0 10px 24px -12px #234f5ccc;transition:transform .18s,box-shadow .18s,opacity .18s}
+.admin-gate-submit:not(:disabled):hover{transform:translateY(-1px);box-shadow:0 14px 28px -12px #234f5ccc}
+.admin-gate-submit:not(:disabled):active{transform:none}
+.admin-gate-submit:disabled{cursor:not-allowed}
+.admin-gate-submit span{transition:transform .18s}
+.admin-gate-submit:not(:disabled):hover span{transform:translateX(3px)}
+.admin-gate-card .account-error{margin:14px 0 0;font-size:14px}
+.admin-gate-note{display:flex;gap:8px;margin:18px 0 0!important;padding-top:16px;border-top:1px solid #e3eced;font-size:12px;color:#6a8289;line-height:1.7}
+.admin-gate-note::before{content:"🔒";font-size:12px}
+@media(prefers-reduced-motion:reduce){.admin-gate *{transition:none!important}}
+@media(max-width:600px){.admin-gate{padding:20px 16px 48px}}
+
+/* Signed-in header follows the same brand/eyebrow pattern. */
+.adminView .account-nav a{display:inline-flex;align-items:center;min-height:44px;box-sizing:border-box;font-weight:650}
+.adminView .account-nav .language-switch{border-radius:24px}
+.admin-header{margin-bottom:20px}
+.admin-header .account-brand{margin-bottom:20px}
+.admin-header .account-eyebrow{margin:0 0 4px;font-weight:650}
+.adminView .admin-header h1{margin:0 0 8px;letter-spacing:-.02em;word-break:keep-all}
