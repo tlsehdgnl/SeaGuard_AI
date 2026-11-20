@@ -1,0 +1,227 @@
+{
+  "version": "2026-11-20",
+  "sources": {
+    "library": {
+      "title": "동해시립도서관 이용시간·휴관일",
+      "url": "https://www.donghaelib.go.kr/web/contents/40002/contents.do",
+      "checked_at": "2026-11-20"
+    },
+    "buksam-route": {
+      "title": "북삼도서관 오시는 길",
+      "url": "https://www.donghaelib.go.kr/web/menu/10091/contents/40030/contents.do",
+      "checked_at": "2026-11-20"
+    },
+    "pencil": {
+      "title": "연필뮤지엄 공식 관람 안내",
+      "url": "https://www.pencilmuseum.co.kr/location",
+      "checked_at": "2026-11-20"
+    },
+    "pencil-access": {
+      "title": "한국관광공사 열린관광 · 연필뮤지엄 (2026-11-10 수정)",
+      "url": "https://access.visitkorea.or.kr/ms/detail.do?cotId=62f25420-e930-4f72-b5f3-548bd30b6555",
+      "checked_at": "2026-11-20"
+    },
+    "pencil-conflict": {
+      "title": "한국관광공사 다른 안내 · 접근성 정보 상충",
+      "url": "https://korean.visitkorea.or.kr/detail/ms_detail.do?cotid=27b3b63b-92a3-4acf-a53b-cb78b8795663",
+      "checked_at": "2026-11-20"
+    },
+    "cave": {
+      "title": "한국관광공사 · 천곡황금박쥐동굴",
+      "url": "https://english.visitkorea.or.kr/svc/contents/contentsView.do?vcontsId=95383",
+      "checked_at": "2026-11-20"
+    },
+    "access-2019": {
+      "title": "한국관광공사 동해 접근성 안내 (2019년 자료 · 재확인 필요)",
+      "url": "https://korean.visitkorea.or.kr/detail/rem_detail.do?cotid=46d88709-4c91-467f-87aa-e18e644272f2",
+      "checked_at": "2026-11-20"
+    },
+    "forest": {
+      "title": "한국관광공사 · 동해무릉건강숲",
+      "url": "https://korean.visitkorea.or.kr/detail/rem_detail.do?cotid=6bcdecdd-8f36-4516-8c71-c9dca6857b4d",
+      "checked_at": "2026-11-20"
+    }
+  },
+  "places": [
+    {
+      "id": "balhan",
+      "name": "발한도서관",
+      "address": "동해시 해안로 535",
+      "phone": "033-530-2480",
+      "kind": "독서",
+      "indoor": true,
+      "fee": "unknown",
+      "fee_note": "자료실 이용·프로그램별 비용은 공식 안내에서 확인",
+      "step_free": null,
+      "transit": null,
+      "closed_weekdays": [
+        4
+      ],
+      "source_ids": [
+        "library"
+      ],
+      "facts": [
+        {
+          "id": "balhan-reading",
+          "text": "실내에서 책을 읽는 활동 후보입니다. 대출·프로그램은 별도 이용 조건을 확인하세요.",
+          "source_id": "library"
+        }
+      ],
+      "notes": [
+        "공휴일·임시 휴관과 자료실별 운영시간을 방문 전에 확인하세요.",
+        "경사로·엘리베이터·유모차 동선은 확인되지 않았습니다."
+      ]
+    },
+    {
+      "id": "buksam",
+      "name": "북삼도서관",
+      "address": "동해시 효자로 649",
+      "phone": "033-530-2490",
+      "kind": "독서",
+      "indoor": true,
+      "fee": "unknown",
+      "fee_note": "자료실 이용·프로그램별 비용은 공식 안내에서 확인",
+      "step_free": null,
+      "transit": true,
+      "closed_weekdays": [
+        4
+      ],
+      "source_ids": [
+        "library",
+        "buksam-route"
+      ],
+      "facts": [
+        {
+          "id": "buksam-reading",
+          "text": "실내에서 책을 읽는 활동 후보입니다. 대출·프로그램은 별도 이용 조건을 확인하세요.",
+          "source_id": "library"
+        }
+      ],
+      "notes": [
+        "공휴일·임시 휴관과 자료실별 운영시간을 방문 전에 확인하세요.",
+        "경사로·엘리베이터·유모차 동선은 확인되지 않았습니다."
+      ]
+    },
+    {
+      "id": "dream",
+      "name": "꿈빛마루도서관",
+      "address": "동해시 천곡로 114",
+      "phone": "033-530-2501",
+      "kind": "독서",
+      "indoor": true,
+      "fee": "unknown",
+      "fee_note": "자료실 이용·프로그램별 비용은 공식 안내에서 확인",
+      "step_free": null,
+      "transit": null,
+      "closed_weekdays": [
+        0
+      ],
+      "source_ids": [
+        "library"
+      ],
+      "facts": [
+        {
+          "id": "dream-reading",
+          "text": "실내에서 책을 읽는 활동 후보입니다. 대출·프로그램은 별도 이용 조건을 확인하세요.",
+          "source_id": "library"
+        }
+      ],
+      "notes": [
+        "공휴일·임시 휴관과 자료실별 운영시간을 방문 전에 확인하세요.",
+        "경사로·엘리베이터·유모차 동선은 확인되지 않았습니다."
+      ]
+    },
+    {
+      "id": "pencil",
+      "name": "연필뮤지엄",
+      "address": "동해시 발한동 240-20",
+      "phone": "033-532-1010",
+      "kind": "전시",
+      "indoor": true,
+      "fee": "paid",
+      "fee_note": "성인·청소년 7,000원 / 어린이 5,000원 (운영기관 안내 기준, 방문 전 재확인)",
+      "step_free": null,
+      "transit": true,
+      "closed_weekdays": [
+        1,
+        2
+      ],
+      "source_ids": [
+        "pencil",
+        "pencil-access",
+        "pencil-conflict"
+      ],
+      "facts": [
+        {
+          "id": "pencil-exhibit",
+          "text": "연필 전시를 관람하는 실내 문화활동 후보입니다.",
+          "source_id": "pencil-access"
+        },
+        {
+          "id": "pencil-transit",
+          "text": "운영기관이 묵호역에서 도보로 접근하는 경로를 안내합니다. 해변 출발 경로는 따로 확인하세요.",
+          "source_id": "pencil"
+        }
+      ],
+      "notes": [
+        "공식 관람시간 10:00~18:00, 입장 마감 17:30. 임시 변경은 방문 전 확인하세요.",
+        "접근성 자료에 엘리베이터·출입구 정보가 서로 달라 무단차 이동 가능 여부는 전화 확인이 필요합니다."
+      ]
+    },
+    {
+      "id": "cave",
+      "name": "천곡황금박쥐동굴",
+      "address": "동해시 동굴로 50",
+      "phone": "033-539-3630",
+      "kind": "자연관찰",
+      "indoor": true,
+      "fee": "paid",
+      "fee_note": "유료 관람 · 할인과 최신 금액은 공식 안내 확인",
+      "step_free": false,
+      "transit": null,
+      "closed_weekdays": [],
+      "source_ids": [
+        "cave",
+        "access-2019"
+      ],
+      "facts": [
+        {
+          "id": "cave-nature",
+          "text": "천연 석회석 동굴 내부를 관람하는 자연관찰 후보입니다.",
+          "source_id": "cave"
+        }
+      ],
+      "notes": [
+        "과거 공식 관광 안내에 좁은 통로·계단과 유모차·휠체어 접근 제한이 명시되어 있습니다. 현재 조건은 운영기관에 재확인하세요.",
+        "기상에 따른 운영 여부, 미끄러운 바닥과 계단 이용 가능 여부를 방문 전에 확인하세요."
+      ]
+    },
+    {
+      "id": "forest",
+      "name": "동해무릉건강숲 실내 체험",
+      "address": "동해시 삼화로 455",
+      "phone": "033-530-2391",
+      "kind": "체험",
+      "indoor": true,
+      "fee": "paid",
+      "fee_note": "프로그램별 유료 · 비용·예약은 기관 확인",
+      "step_free": null,
+      "transit": null,
+      "closed_weekdays": [],
+      "source_ids": [
+        "forest"
+      ],
+      "facts": [
+        {
+          "id": "forest-craft",
+          "text": "만들기 체험 등 실내 프로그램을 알아볼 수 있습니다. 운영 여부와 예약이 먼저 확인되어야 합니다.",
+          "source_id": "forest"
+        }
+      ],
+      "notes": [
+        "야외 숲길이 아닌 실내 프로그램에 한정한 후보입니다.",
+        "프로그램 일정·정원·연령 조건·이용시간과 이동 동선을 전화로 확인하세요."
+      ]
+    }
+  ]
+}
