@@ -48,3 +48,20 @@ class ScheduleTests(unittest.TestCase):
             self.assertEqual(result.status_code,200)
             self.assertEqual(result.json()['order'],[0,2])
             self.assertEqual(result.json()['reply'],'Try lunch first')
+
+class OpenAIConnectionTests(unittest.IsolatedAsyncioTestCase):
+    async def test_server_key_and_json_response(self):
+        import httpx
+        from app import ai
+        ai._cache.clear(); ai._calls.clear()
+        response=httpx.Response(200, request=httpx.Request('POST','https://api.openai.com/v1/chat/completions'), json={'choices':[{'message':{'content':'{"order":[0]}'}}]})
+        client=AsyncMock(); client.post.return_value=response
+        with patch.dict('os.environ', {'OPENAI_API_KEY':'test-not-real','OPENAI_MODEL':'gpt-4.1-mini'}), patch('app.ai.httpx.AsyncClient') as factory:
+            factory.return_value.__aenter__=AsyncMock(return_value=client)
+            factory.return_value.__aexit__=AsyncMock()
+            result,status=await ai.select_json({'test':True},'Return JSON')
+        self.assertEqual(status,'ok')
+        self.assertEqual(result,{'order':[0]})
+        self.assertEqual(client.post.call_args.args[0],'https://api.openai.com/v1/chat/completions')
+        self.assertEqual(client.post.call_args.kwargs['headers']['Authorization'],'Bearer test-not-real')
+        ai._cache.clear(); ai._calls.clear()

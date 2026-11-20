@@ -14,6 +14,19 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
   const [chatOpen, setChatOpen] = useState(false);
   const [sending, setSending] = useState(false);
   const [chatError, setChatError] = useState("");
+  const chatDialog = useRef(null);
+  const chatBottom = useRef(null);
+  useEffect(() => {
+    if (!chatOpen) return;
+    const dialog = chatDialog.current;
+    dialog.showModal();
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { dialog.close(); document.body.style.overflow = previous; };
+  }, [chatOpen]);
+  useEffect(() => {
+    if (chatOpen) chatBottom.current?.scrollIntoView({block:"nearest"});
+  }, [messages, sending, chatError, chatOpen]);
   const [result, setResult] = useState(null);
   const [attempt, retry] = useState(0);
   const [error, setError] = useState("");
@@ -86,7 +99,7 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
     try {
       const res = await fetch((import.meta.env.VITE_API_BASE_URL || "")+"/api/course/chat", {
         method:"POST", headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({course:JSON.parse(payload), messages:next}), signal:AbortSignal.timeout(55000),
+        body:JSON.stringify({course:JSON.parse(payload), messages:next, current_order:result.order}), signal:AbortSignal.timeout(55000),
       });
       const data = await res.json();
       if (version !== generation.current) return;
@@ -142,13 +155,32 @@ export function CoursePlanner({ indoorPlaces, loading, profile, start, weather, 
       <CourseMap names={[start,...result.stops.map(stop => stop.name)]} />
       <p className="hint">이동시간과 영업 여부는 각 장소의 지도에서 확인하세요.</p>
     </div>}
-    <button className="chat-link" disabled={!result || sending} onClick={()=>setChatOpen(!chatOpen)}>이 계획으로 AI와 대화하기</button>
-    {chatOpen && <section className="course-chat">
-      <p className="hint">현재 코스와 대화 내용이 OpenAI로 전송됩니다. 대화로 방문 순서를 조정할 수 있으며 시간·식사 횟수는 위 조건에서 변경하세요. 대화와 상세 일정 조건은 이 화면에서만 유지됩니다.</p>
-      <div role="log" aria-live="polite">{messages.map((m,i)=><p key={i}><strong>{m.role === "user" ? "나" : "GPT"}</strong><br/>{m.content}</p>)}</div>
-      <form onSubmit={send}><label>GPT에게 요청<textarea maxLength={2000} required disabled={sending} value={message} onChange={e=>setMessage(e.target.value)} placeholder="이 코스에서 이동을 줄일 수 있을까?"/></label><button disabled={sending || !message.trim() || !result}>{sending ? "답변을 기다리고 있어요…" : "보내기"}</button></form>
-      {chatError && <p role="alert">{chatError}</p>}
-    </section>}
+    <button className="chat-link" disabled={!result} onClick={()=>setChatOpen(true)} aria-haspopup="dialog">이 계획으로 AI와 대화하기</button>
+    {chatOpen && <dialog ref={chatDialog} className="trip-chat-dialog" aria-labelledby="trip-chat-title" onCancel={()=>setChatOpen(false)} onClick={e=>{if(e.target===e.currentTarget)setChatOpen(false);}}>
+      <div className="trip-chat-shell">
+        <header className="trip-chat-header">
+          <span className="trip-chat-avatar" aria-hidden="true">≈</span>
+          <div><p className="trip-chat-eyebrow">SEAGUARD AI</p><h2 id="trip-chat-title">나의 여행 메이트</h2><p>현재 계획을 함께 다듬어요</p></div>
+          <button type="button" className="trip-chat-close" aria-label="대화창 닫기" onClick={()=>setChatOpen(false)}>×</button>
+        </header>
+        <div className="trip-chat-context"><span>함께 보는 여행 계획</span><strong>{start}</strong><small>{applied.start} – {applied.end} · 식사 {applied.meals.length}<span>회</span></small></div>
+        <div className="trip-chat-messages" role="log" aria-label="여행 대화" aria-live="polite">
+          <div className="trip-chat-row assistant"><span className="trip-chat-avatar" aria-hidden="true">≈</span><div className="trip-chat-bubble"><strong>SeaGuard AI</strong><p>어떤 여행을 원하시나요? 지금 계획을 바탕으로 이동 동선과 방문 순서를 함께 다듬어 드릴게요.</p></div></div>
+          {!messages.length && <div className="trip-chat-prompts">{["이동 거리를 줄이고 싶어요", "이 코스의 식사 시간을 검토해 줘", "아이와 함께 가기 좋은 동선일까?"].map(text=><button type="button" key={text} disabled={sending} onClick={()=>setMessage(language === "en" ? ({"이동 거리를 줄이고 싶어요":"I'd like to reduce travel distance.","이 코스의 식사 시간을 검토해 줘":"Please review the meal times in this itinerary.","아이와 함께 가기 좋은 동선일까?":"Is this route suitable for a trip with children?"}[text]) : text)}>{text} ↗</button>)}</div>}
+          {messages.map((m,i)=><div key={i} className={"trip-chat-row "+m.role}><div className="trip-chat-bubble"><strong>{m.role === "user" ? "대화 사용자" : "SeaGuard AI"}</strong><p>{m.content}</p></div></div>)}
+          {sending && <><div className="trip-chat-row user"><div className="trip-chat-bubble"><strong>대화 사용자</strong><p>{message}</p></div></div><div className="trip-chat-row assistant"><div className="trip-chat-bubble trip-chat-pending" role="status">답변을 기다리고 있어요…</div></div></>}
+          {chatError && <p className="trip-chat-error" role="alert">{chatError}</p>}
+          <div ref={chatBottom}/>
+        </div>
+        <form className="trip-chat-composer" onSubmit={send}>
+          <label className="trip-chat-input-label" htmlFor="trip-chat-input">GPT에게 요청</label>
+          <div className="trip-chat-input-row"><textarea id="trip-chat-input" maxLength={2000} required disabled={sending} value={message} onChange={e=>setMessage(e.target.value)} placeholder="어떤 여행을 원하시는지 이야기해 주세요" onKeyDown={e=>{if(e.key==="Enter" && !e.shiftKey && !e.nativeEvent.isComposing){e.preventDefault();e.currentTarget.form.requestSubmit();}}}/><button className="trip-chat-send" disabled={sending || !message.trim() || !result} aria-label="보내기">↑</button></div>
+          <p className="trip-chat-note">Enter로 전송 · Shift+Enter로 줄바꿈</p>
+          <details className="trip-chat-disclosure"><summary>대화 및 일정 안내</summary><p>현재 코스와 대화 내용이 OpenAI로 전송됩니다. 대화로 방문 순서를 조정할 수 있으며 시간·식사 횟수는 위 조건에서 변경하세요. 대화와 상세 일정 조건은 이 화면에서만 유지됩니다.</p></details>
+        </form>
+      </div>
+    </dialog>}
+
   </section>;
 }
 
